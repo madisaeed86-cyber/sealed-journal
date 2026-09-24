@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sealed Journal · a private, aesthetic journal with a PIN lock</title>
+<meta name="description" content="A soft, aesthetic diary locked with your PIN. Write daily pages, pick fonts, add stickers and keep checklists. Everything is encrypted and stays on your device. Free to use.">
+<meta name="theme-color" content="#EDE7F1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta property="og:title" content="Sealed Journal · a private, aesthetic journal">
+<meta property="og:description" content="Write, decorate and seal your pages with a PIN. Encrypted and on your device only.">
+<meta property="og:image" content="icons/icon-512.png">
+<!-- ADSENSE: paste the code AdSense gives you for "Connect your site" on the next line -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{--bg:#EDE7F1;--surface:#F8F4FA;--ink:#2E2238;--muted:#76688A;--line:#DDD2E4;--seal:#8C5A7A;--seal-hi:#B07A9C;
+  --serif:"Young Serif",Georgia,serif;--sans:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#17121D;--surface:#221B2A;--ink:#EEE6F3;--muted:#A596B3;--line:#372D42;--seal:#B98AA9;--seal-hi:#C293B2}}
+:root[data-theme="dark"]{--bg:#17121D;--surface:#221B2A;--ink:#EEE6F3;--muted:#A596B3;--line:#372D42;--seal:#B98AA9;--seal-hi:#C293B2}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-text-size-adjust:100%}
+a{color:var(--seal)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.wrap{max-width:980px;margin:0 auto;padding:0 22px}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.brand{font-family:var(--serif);font-size:1.15rem;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:11px 20px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:var(--surface)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:40px 0 70px}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.6rem,7vw,4.4rem);line-height:1.02;margin:0 0 18px;color:var(--seal)}
+.hero p{font-size:1.12rem;max-width:34ch;margin:0 0 26px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.hero .fine{font-size:.88rem;color:var(--muted);margin-top:16px}
+.page{background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:26px 24px 30px;position:relative;box-shadow:0 20px 50px rgba(46,34,56,.10);transform:rotate(1.5deg)}
+.page .d{font-family:var(--serif);color:var(--muted);font-size:.95rem}
+.page h3{font-family:"Caveat",cursive;font-weight:500;font-size:2.1rem;margin:4px 0 6px;line-height:1.1}
+.page .lines{font-family:"Caveat",cursive;font-size:1.35rem;line-height:2rem;background-image:linear-gradient(transparent calc(2rem - 1px),var(--line) calc(2rem - 1px));background-size:100% 2rem;margin:0}
+.page .stk{position:absolute;width:66px;height:66px;filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 3px 4px rgba(46,34,56,.2))}
+.seal{width:64px;height:64px}
+section.block{padding:56px 0;border-top:1px solid var(--line)}
+section.block h2{font-family:var(--serif);font-weight:400;font-size:clamp(1.8rem,4.5vw,2.5rem);line-height:1.15;margin:0 0 12px}
+section.block > .wrap > p.lead{color:var(--muted);max-width:60ch;margin:0 0 28px}
+.feats{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.feats h3{font-family:var(--serif);font-weight:400;font-size:1.2rem;margin:0 0 4px}
+.feats p{margin:0;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;counter-reset:s;list-style:none;padding:0;margin:0}
+.steps li{counter-increment:s;padding-top:6px}
+.steps li::before{content:counter(s);display:grid;place-content:center;width:38px;height:38px;border-radius:50%;background:var(--seal);color:#fff;font-family:var(--serif);font-size:1.1rem;margin-bottom:10px}
+.steps strong{display:block;font-size:1.05rem}
+.steps span{color:var(--muted)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:460px;background:var(--surface);border-radius:20px;overflow:hidden;border:1px solid var(--line)}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-family:var(--serif);font-weight:400;font-size:1.1rem}
+td:not(:first-child),th:not(:first-child){text-align:center}
+tr:last-child td{border-bottom:none}
+.prompts{columns:2;column-gap:40px}
+.prompts h3{font-family:var(--serif);font-weight:400;font-size:1.15rem;margin:0 0 6px;break-after:avoid}
+.prompts ul{margin:0 0 24px;padding-left:20px;break-inside:avoid}
+.prompts li{margin-bottom:6px}
+details{border-bottom:1px solid var(--line);padding:14px 0}
+summary{cursor:pointer;font-weight:600;font-size:1.02rem}
+details p{margin:8px 0 0;color:var(--muted);max-width:65ch}
+.adwrap{margin:0 auto;max-width:980px;padding:0 22px 40px}
+.adwrap .adlabel{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+.cta-end{text-align:center}
+.cta-end p{color:var(--muted);margin:0 0 22px}
+footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--muted);font-size:.9rem}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr;padding-top:20px;gap:36px}
+  .feats,.steps{grid-template-columns:1fr}
+  .prompts{columns:1}
+  .page{transform:none;max-width:420px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="var(--seal)"/><circle cx="12" cy="12" r="4" fill="var(--bg)" opacity=".85"/></svg>Sealed Journal</a>
+    <a class="btn" href="app.html">Open journal</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>A journal that stays sealed.</h1>
+      <p>Write your days on soft, lined pages, decorate them with stickers, and lock everything behind your own PIN. Nobody reads it but you.</p>
+      <div class="ctas"><a class="btn primary" href="app.html">Start writing, it's free</a><a class="btn" href="#premium">See Premium</a></div>
+      <p class="fine">Works in your browser on phones and computers. No account, no sign-up.</p>
+    </div>
+    <div class="page" aria-hidden="true">
+      <span class="d">Thursday, 24 September</span>
+      <h3>A soft Thursday</h3>
+      <p class="lines">Wrote this on the balcony with chai.<br>The light was lilac and the rain<br>finally stopped around five.<br>&nbsp;</p>
+      <svg class="stk" style="right:-16px;top:-20px;transform:rotate(12deg)" viewBox="0 0 64 64"><path d="M32 54C10 38 5 26 11 17c6-8 16-6 21 3 5-9 15-11 21-3 6 9 1 21-21 37z" fill="#E88AA5"/></svg>
+      <svg class="stk" style="left:-18px;bottom:-22px;transform:rotate(-10deg)" viewBox="0 0 64 64"><g fill="#F4A9C0"><circle cx="32" cy="18" r="11"/><circle cx="32" cy="18" r="11" transform="rotate(72 32 32)"/><circle cx="32" cy="18" r="11" transform="rotate(144 32 32)"/><circle cx="32" cy="18" r="11" transform="rotate(216 32 32)"/><circle cx="32" cy="18" r="11" transform="rotate(288 32 32)"/></g><circle cx="32" cy="32" r="8" fill="#F6D26B"/></svg>
+      <svg class="stk" style="right:24px;bottom:-26px;transform:rotate(-6deg)" viewBox="0 0 64 64"><path d="M30 4c2 20 8 26 28 28-20 2-26 8-28 28-2-20-8-26-28-28 20-2 26-8 28-28z" fill="#CDB6F0"/></svg>
+    </div>
+  </section>
+</div>
+
+<section class="block">
+  <div class="wrap">
+    <h2>Private by design, pretty by default</h2>
+    <p class="lead">Sealed Journal is a calm place to write. It keeps your words on your own device and encrypts them with your PIN before they are saved.</p>
+    <div class="feats">
+      <div><h3>Locked with your PIN</h3><p>Choose a 4 or 6-digit PIN. Pages are encrypted with it, and the journal locks itself when you step away.</p></div>
+      <div><h3>Fonts, moods and stickers</h3><p>Write in a handwritten or typewriter font, tag how you felt, and drag stickers anywhere on the page.</p></div>
+      <div><h3>Checklists too</h3><p>Keep groceries, goals and packing lists next to your journal, sealed behind the same PIN.</p></div>
+      <div><h3>Works offline</h3><p>Once opened, it keeps working without internet. Add it to your home screen and it opens like an app.</p></div>
+      <div><h3>Your data, your backups</h3><p>Download an encrypted backup any time and restore it on a new phone or computer.</p></div>
+      <div><h3>No account needed</h3><p>No email, no sign-up, no password to leak. Just your PIN.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="lead">It takes less than a minute to start.</p>
+    <ol class="steps">
+      <li><strong>Seal your journal</strong><span>Open the journal and choose your PIN. Enter it twice to confirm.</span></li>
+      <li><strong>Write today's page</strong><span>Pick a font and a mood, give the page a title, and write.</span></li>
+      <li><strong>Decorate and lock</strong><span>Add a few stickers, tap Done, and lock it. Your PIN opens it again.</span></li>
+    </ol>
+  </div>
+</section>
+
+<div class="adwrap" data-ad="landing" hidden></div>
+
+<section class="block" id="premium">
+  <div class="wrap">
+    <h2>Free, with a little extra if you want it</h2>
+    <p class="lead">The journal is free to use. Premium adds more ways to make it yours and removes ads, with a one-time payment.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th scope="col">&nbsp;</th><th scope="col">Free</th><th scope="col">Premium</th></tr></thead>
+        <tbody>
+          <tr><td>PIN lock and encryption</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Unlimited pages and checklists</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Backups and offline use</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Themes</td><td>2</td><td>8</td></tr>
+          <tr><td>Fonts</td><td>3</td><td>7</td></tr>
+          <tr><td>Stickers</td><td>6</td><td>14</td></tr>
+          <tr><td>Ads</td><td>Small ads on the home screen</td><td>None</td></tr>
+          <tr><td>Price</td><td>₹0</td><td><span data-price="yearly">₹199</span> a year or <span data-price="lifetime">₹499</span> forever</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2>30 journal prompts for when the page feels empty</h2>
+    <p class="lead">Borrow one of these whenever you don't know what to write. There's no wrong answer.</p>
+    <div class="prompts">
+      <h3>For slow mornings</h3>
+      <ul><li>What do I want today to feel like?</li><li>One small thing I'm looking forward to.</li><li>What's the first sound I heard this morning?</li><li>Something I can let go of before noon.</li><li>A kind sentence to myself, written like a note from a friend.</li></ul>
+      <h3>For the end of the day</h3>
+      <ul><li>What felt soft today?</li><li>Three moments I want to remember.</li><li>Where did my attention keep drifting?</li><li>What drained me, and what filled me back up?</li><li>What am I carrying into tomorrow?</li></ul>
+      <h3>For hard days</h3>
+      <ul><li>What exactly is heavy right now? Name it plainly.</li><li>What would I tell a friend who felt this way?</li><li>One thing that is still okay.</li><li>What do I need tonight: rest, company, or quiet?</li><li>Something I got through before that felt this big.</li></ul>
+      <h3>For knowing yourself</h3>
+      <ul><li>A place where I feel most like myself.</li><li>Something I believed a year ago that I don't anymore.</li><li>What do I keep saying yes to that I'd like to say no to?</li><li>The people who make me feel lighter.</li><li>A habit I'd like to keep for the next ten years.</li></ul>
+      <h3>For noticing small joys</h3>
+      <ul><li>Describe the light in the room right now.</li><li>The best thing I ate this week.</li><li>A song that matched today's mood.</li><li>Something that made me laugh without trying.</li><li>A tiny thing someone did that I appreciated.</li></ul>
+      <h3>For looking ahead</h3>
+      <ul><li>A letter to myself one year from now.</li><li>What would make next week feel good?</li><li>One skill I'd love to be learning.</li><li>A place I want to visit, and who I'd take.</li><li>What does a really ordinary, happy day look like for me?</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="wrap">
+    <h2>Questions</h2>
+    <details><summary>Can anyone else read my journal?</summary><p>No. Your pages are encrypted with a key made from your PIN and stored only on your device. We have no server that receives your writing, so we can't read it either.</p></details>
+    <details><summary>What happens if I forget my PIN?</summary><p>Because your pages are encrypted with it, a forgotten PIN can't be recovered. You can erase the journal and start again, or restore an older backup if you remember that backup's PIN.</p></details>
+    <details><summary>Will my pages be there on my other phone?</summary><p>Each device keeps its own journal. To move pages, download a backup in Settings and restore it on the other device.</p></details>
+    <details><summary>Does it work without internet?</summary><p>Yes, after you've opened it once. Adding it to your home screen makes it open like a normal app.</p></details>
+    <details><summary>How does Premium work?</summary><p>Pay once through Razorpay (UPI, cards or netbanking). You'll get a Premium code you can paste on your other devices. The yearly plan doesn't renew on its own.</p></details>
+    <details><summary>Why are there ads?</summary><p>Ads keep the journal free. They only appear on the home and checklist screens, never on the page you're writing. Premium removes them completely.</p></details>
+  </div>
+</section>
+
+<section class="block cta-end">
+  <div class="wrap">
+    <h2>Your first page is waiting</h2>
+    <p>Free, private, and ready in under a minute.</p>
+    <a class="btn primary" href="app.html">Open your journal</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap"><span>Sealed Journal</span><span><a href="privacy.html">Privacy policy</a>&nbsp;&nbsp;&nbsp;<a href="terms.html">Terms, refunds and contact</a></span></div>
+</footer>
+
+<script>
+(function(){
+  var C = window.SJ_CONFIG || {};
+  // landing page ad (only when configured)
+  var w = document.querySelector('.adwrap[data-ad="landing"]');
+  if (w && C.adsenseClient && C.adSlots && C.adSlots.landing){
+    w.hidden = false;
+    w.innerHTML = '<span class="adlabel">Advertisement</span>';
+    var ins = document.createElement("ins"); ins.className = "adsbygoogle"; ins.style.display = "block";
+    ins.setAttribute("data-ad-client", C.adsenseClient); ins.setAttribute("data-ad-slot", C.adSlots.landing);
+    ins.setAttribute("data-ad-format", "auto"); ins.setAttribute("data-full-width-responsive", "true"); w.appendChild(ins);
+    if (!document.querySelector('script[src*="adsbygoogle.js"]')){
+      var s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous";
+      s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(C.adsenseClient); document.head.appendChild(s);
+    }
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  }
+  // show real prices from the server when available
+  if (C.apiUrl){
+    fetch(C.apiUrl.replace(/\/$/, "") + "/api/plans").then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      if (!d || !d.plans) return;
+      document.querySelectorAll("[data-price]").forEach(function(el){ var p = d.plans[el.dataset.price]; if (p) el.textContent = "₹" + Math.round(p.amount / 100).toLocaleString("en-IN"); });
+    }).catch(function(){});
+  }
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(function(){});
+})();
+</script>
+</body>
+</html>

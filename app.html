@@ -1,0 +1,1446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EDE7F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17121D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Journal">
+<title>Sealed Journal · Open your journal</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="A soft, aesthetic journal locked with your PIN. Write pages, pick fonts, add stickers and keep checklists. Everything is encrypted and stays on your device.">
+<link rel="manifest" href="manifest.webmanifest">
+<script src="config.js"></script>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&family=Caveat:wght@500&family=Special+Elite&family=Patrick+Hand&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Fredoka:wght@400;500&family=Dancing+Script:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDE7F1; --surface:#F8F4FA; --ink:#2E2238; --muted:#76688A; --line:#DDD2E4;
+  --seal:#8C5A7A; --seal-hi:#B07A9C; --danger:#A2404F;
+  --calm:#7FA087; --bright:#D6AE55; --tender:#D48FA5; --heavy:#6E7FA8; --restless:#C98B5E;
+  --serif:"Young Serif", Georgia, "Times New Roman", serif;
+  --sans:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17121D; --surface:#221B2A; --ink:#EEE6F3; --muted:#A596B3; --line:#372D42;
+    --seal:#9B6688; --seal-hi:#C293B2; --danger:#E07A89;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17121D; --surface:#221B2A; --ink:#EEE6F3; --muted:#A596B3; --line:#372D42;
+  --seal:#9B6688; --seal-hi:#C293B2; --danger:#E07A89;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-tap-highlight-color:transparent;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.hidden{display:none !important}
+
+/* ---------- Lock screen ---------- */
+#lock{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;transition:opacity .45s ease}
+.lock-inner{width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;text-align:center}
+#seal{width:132px;height:132px;margin-bottom:22px;transition:transform .7s cubic-bezier(.5,-0.3,.4,1.2),opacity .6s ease}
+#seal .wax{fill:var(--seal)}
+#seal .ring{fill:none;stroke:var(--seal-hi);stroke-width:1.5;opacity:.7}
+#seal .petal{fill:var(--seal-hi);opacity:.85}
+#seal .core{fill:var(--bg);opacity:.9}
+#lock h1{font-family:var(--serif);font-weight:400;font-size:1.75rem;line-height:1.2;margin:0 0 6px}
+#lockSub{color:var(--muted);margin:0 0 22px;min-height:1.5em}
+.dots{display:flex;gap:16px;margin-bottom:10px}
+.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--seal);transition:background .15s}
+.dot.on{background:var(--seal)}
+.dots.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+#lockMsg{min-height:1.5em;font-size:.9rem;color:var(--danger);margin:0 0 14px}
+.keypad{display:grid;grid-template-columns:repeat(3,72px);gap:14px 22px}
+.key{width:72px;height:72px;border-radius:50%;border:none;background:var(--surface);font-family:var(--serif);font-size:1.6rem;
+  box-shadow:inset 0 0 0 1px var(--line);transition:background .12s,transform .08s}
+.key:active{transform:scale(.94);background:var(--line)}
+.key.ghost{background:transparent;box-shadow:none;font-family:var(--sans);font-size:.9rem;color:var(--muted)}
+.keypad[aria-disabled="true"]{opacity:.45;pointer-events:none}
+#resetBtn{margin-top:26px;background:none;border:none;color:var(--muted);font-size:.85rem;text-decoration:underline;text-underline-offset:3px}
+#resetBtn.armed{color:var(--danger)}
+#lock.opening #seal{transform:rotate(-40deg) scale(1.5);opacity:0}
+#lock.opening{opacity:0}
+
+/* ---------- App ---------- */
+#app{max-width:680px;margin:0 auto;padding:20px 22px 64px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px}
+.wordmark{font-family:var(--serif);font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.wordmark svg{width:22px;height:22px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;font-size:.92rem;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn svg{width:16px;height:16px}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--danger)}
+.btn.armed{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn[aria-expanded="true"]{border-color:var(--ink)}
+.btn[disabled]{opacity:.55;cursor:default}
+
+.today{margin-bottom:34px}
+.today .weekday{font-family:var(--serif);font-size:clamp(2.6rem,9vw,3.8rem);line-height:1;margin:0;color:var(--seal)}
+.today .datefull{font-family:var(--serif);font-size:clamp(1.3rem,4vw,1.6rem);margin:6px 0 14px}
+.today p{color:var(--muted);margin:0 0 20px}
+
+.search{width:100%;border:none;border-bottom:1px solid var(--line);background:transparent;padding:10px 2px;font:inherit;color:var(--ink);margin-bottom:10px}
+.search::placeholder{color:var(--muted)}
+.month{font-family:var(--serif);font-size:1.05rem;color:var(--muted);margin:30px 0 6px}
+.entry{display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:start;width:100%;text-align:left;background:none;border:none;
+  border-bottom:1px solid var(--line);padding:16px 2px}
+.entry:hover .etitle{text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line)}
+.eday{font-family:var(--serif);font-size:1.9rem;line-height:1}
+.ewd{display:block;font-family:var(--sans);font-size:.75rem;color:var(--muted);margin-top:4px}
+.etitle{font-family:var(--serif);font-size:1.1rem;display:block;margin-bottom:2px;overflow-wrap:anywhere}
+.esnip{color:var(--muted);font-size:.92rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.eside{display:flex;align-items:center;gap:2px;padding-top:2px}
+.eside svg{width:24px;height:24px}
+.moodmark{width:10px;height:10px;border-radius:50%;margin-left:6px}
+.empty{padding:40px 0;color:var(--muted);max-width:40ch}
+.store-note{margin-top:40px;font-size:.82rem;color:var(--muted)}
+
+/* ---------- Settings, toast, misc ---------- */
+.topactions{display:flex;gap:8px}
+.iconbtn{padding:8px 10px}
+.linkbtn{margin-top:18px;background:none;border:none;color:var(--seal);font-size:.9rem;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+#cancelBtn{color:var(--muted)}
+#settings{position:fixed;inset:0;z-index:26;background:rgba(30,20,38,.35);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 22px calc(24px + env(safe-area-inset-bottom,0px));
+  max-height:90vh;overflow-y:auto;animation:rise .25s ease}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sheet-head h2{font-family:var(--serif);font-weight:400;font-size:1.6rem;margin:0}
+.srow{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.srow > div{flex:1}
+.srow strong{font-weight:600}
+.srow p{margin:2px 0 0;color:var(--muted);font-size:.88rem}
+.srow .btn{flex:none}
+#setMsg{min-height:1.4em;color:var(--seal);font-size:.9rem;margin:12px 0 0}
+#setMsg.err{color:var(--danger)}
+.slinks{margin:8px 0 0;font-size:.88rem}
+.slinks a{color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:40;
+  background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:.9rem;transition:opacity .25s,transform .25s;max-width:calc(100% - 40px);text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:900px){
+  #settings{align-items:center}
+  .sheet{border-radius:24px;border:1px solid var(--line)}
+}
+
+/* ---------- Premium & ads ---------- */
+.pro{font-size:.7rem;font-weight:600;color:var(--seal);margin-left:4px;font-family:var(--sans)}
+.chip.locked{opacity:.75}
+.tray-grid button{position:relative}
+.tray-grid .lockbadge{position:absolute;right:4px;top:4px;width:18px;height:18px;border-radius:50%;background:var(--seal);color:#fff;font-size:.62rem;display:grid;place-content:center}
+.promo{display:flex;align-items:center;gap:14px;border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:14px 16px;margin:0 0 30px;width:100%;text-align:left}
+.promo .spark{flex:none;width:40px;height:40px;border-radius:50%;background:var(--seal);color:#fff;display:grid;place-content:center;font-size:1.1rem}
+.promo strong{display:block;font-family:var(--serif);font-weight:400;font-size:1.05rem}
+.promo span.sub{color:var(--muted);font-size:.86rem}
+.adwrap{margin:34px 0 0;min-height:0}
+.adwrap .adlabel{display:block;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:10px;margin:10px 0 4px}
+.swatch{border:1.5px solid var(--line);border-radius:16px;padding:8px 6px 6px;background:transparent;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:.75rem;color:var(--muted);position:relative}
+.swatch[aria-pressed="true"]{border-color:var(--ink);color:var(--ink)}
+.swatch .sw{width:40px;height:40px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);position:relative;overflow:hidden}
+.swatch .sw i{position:absolute;right:0;bottom:0;width:50%;height:50%;border-top-left-radius:100%}
+.swatch .lockbadge{position:absolute;right:6px;top:6px;width:16px;height:16px;border-radius:50%;background:var(--seal);color:#fff;font-size:.55rem;display:grid;place-content:center}
+.sblock{padding:16px 0;border-bottom:1px solid var(--line)}
+.sblock p{margin:2px 0 0;color:var(--muted);font-size:.88rem}
+#themeNote{min-height:1.2em}
+#premium{position:fixed;inset:0;z-index:27;background:rgba(30,20,38,.4);display:flex;align-items:flex-end;justify-content:center}
+.psheet{background:var(--surface);width:100%;max-width:520px;border-radius:26px 26px 0 0;padding:22px 22px calc(24px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow-y:auto;animation:rise .25s ease}
+.psheet h2{font-family:var(--serif);font-weight:400;font-size:1.9rem;line-height:1.15;margin:4px 0 6px;color:var(--seal)}
+.psheet .lead{color:var(--muted);margin:0 0 16px}
+.perks{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:8px}
+.perks li{display:flex;gap:10px;align-items:flex-start}
+.perks li::before{content:"✦";color:var(--seal);flex:none}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.plan{border:1.5px solid var(--line);border-radius:18px;padding:14px;background:var(--bg);text-align:left;position:relative}
+.plan[aria-pressed="true"]{border-color:var(--seal);box-shadow:0 0 0 2px var(--seal) inset}
+.plan .pname{display:block;font-weight:600;font-size:.9rem}
+.plan .pprice{display:block;font-family:var(--serif);font-size:1.5rem;margin:4px 0 2px}
+.plan .pnote{display:block;color:var(--muted);font-size:.78rem}
+.plan .tag{position:absolute;top:-10px;right:10px;background:var(--seal);color:#fff;font-size:.7rem;font-weight:600;border-radius:999px;padding:2px 9px}
+#payBtn{width:100%;justify-content:center;padding:13px 16px;font-size:1rem}
+#payMsg{min-height:1.4em;font-size:.88rem;margin:10px 0 0;color:var(--muted)}
+#payMsg.err{color:var(--danger)}
+.pfoot{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+.pfoot summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.pfoot label{display:block;font-size:.84rem;color:var(--muted);margin:12px 0 4px}
+.pfoot .row{display:flex;gap:8px}
+.pfoot input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;padding:9px 12px}
+.pstatus{background:var(--bg);border-radius:16px;padding:14px;margin-bottom:14px}
+.pstatus code{display:block;word-break:break-all;font-size:.72rem;color:var(--muted);margin:8px 0}
+@media (min-width:900px){ #premium{align-items:center} .psheet{border-radius:26px;border:1px solid var(--line)} }
+
+/* ---------- Bottom nav ---------- */
+#app{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+.bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;justify-content:space-between;align-items:center;
+  padding:10px 22px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
+.navbtn{border:none;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 18px;border-radius:18px;
+  color:var(--muted);font-size:.78rem;font-weight:500;min-width:92px}
+.navbtn .navicon{width:44px;height:30px;border-radius:15px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.navbtn svg{width:22px;height:22px}
+.navbtn[aria-current="page"]{color:var(--ink)}
+.navbtn[aria-current="page"] .navicon{background:var(--seal);color:#fff}
+.navwrap{max-width:680px;margin:0 auto;width:100%;display:flex;justify-content:space-between}
+
+/* ---------- Checklists ---------- */
+.lists-head{margin-bottom:26px}
+.lists-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(2.6rem,9vw,3.8rem);line-height:1;margin:0 0 12px;color:var(--seal)}
+.lists-head p{color:var(--muted);margin:0 0 20px}
+.clist{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px 18px 12px;margin-bottom:18px}
+.clist-title{width:100%;border:none;background:transparent;font-family:var(--serif);font-size:1.35rem;color:var(--ink);padding:0}
+.clist-title::placeholder{color:var(--muted)}
+.cprog{display:flex;align-items:center;gap:10px;margin:8px 0 10px;font-size:.82rem;color:var(--muted)}
+.cbar{flex:1;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.cbar span{display:block;height:100%;background:var(--seal);transition:width .3s}
+.citem{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.citem input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--seal);margin:0;cursor:pointer;
+  display:grid;place-content:center;background:transparent}
+.citem input[type=checkbox]::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px);opacity:0}
+.citem input[type=checkbox]:checked{background:var(--seal)}
+.citem input[type=checkbox]:checked::after{opacity:1}
+.citem .ctext{flex:1;border:none;background:transparent;font:inherit;color:var(--ink);padding:4px 0;min-width:0}
+.citem.done .ctext{text-decoration:line-through;color:var(--muted)}
+.citem .cdel{border:none;background:none;color:var(--muted);font-size:1.1rem;width:30px;height:30px;border-radius:50%;flex:none}
+.citem .cdel:hover{background:var(--bg)}
+.cadd{display:flex;align-items:center;gap:10px;padding:8px 0}
+.cadd span{width:22px;height:22px;border-radius:50%;border:1.5px dashed var(--line);flex:none;display:grid;place-content:center;color:var(--muted);font-size:.9rem}
+.cadd input{flex:1;border:none;background:transparent;font:inherit;color:var(--ink);padding:4px 0}
+.cadd input::placeholder{color:var(--muted)}
+.cfoot{display:flex;justify-content:flex-end;margin-top:6px}
+.cfoot button{border:none;background:none;color:var(--muted);font-size:.82rem;padding:6px 4px}
+.cfoot button.armed{color:var(--danger);font-weight:600}
+#listErr{color:var(--danger);font-size:.88rem;min-height:1.3em}
+
+/* ---------- Editor ---------- */
+#editor{position:fixed;inset:0;z-index:20;background:var(--surface);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);animation:rise .28s ease;
+  --pf:var(--serif); --ps:1.08rem; --pt:1.8rem}
+@keyframes rise{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.ebar{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ebar .spacer{flex:1}
+.ebar input[type=date]{border:none;background:transparent;font:inherit;color:var(--muted);padding:4px}
+.escroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.epage{max-width:640px;margin:0 auto;padding:22px 22px 80px;position:relative}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-size:.88rem;display:inline-flex;align-items:center;gap:7px;color:var(--muted);line-height:1.3}
+.chip i{width:10px;height:10px;border-radius:50%;display:block}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink);background:var(--bg)}
+.fonts{margin-bottom:8px}
+.moods{margin-bottom:20px}
+#eTitle{width:100%;border:none;background:transparent;font-family:var(--pf);font-size:var(--pt);line-height:1.25;color:var(--ink);padding:0;margin-bottom:10px}
+#eTitle::placeholder,#eBody::placeholder{color:var(--muted);opacity:.8}
+#eBody{width:100%;min-height:55vh;border:none;resize:none;overflow:hidden;color:var(--ink);font-family:var(--pf);font-size:var(--ps);line-height:2.1rem;
+  background-color:transparent;background-image:linear-gradient(transparent calc(2.1rem - 1px),var(--line) calc(2.1rem - 1px));
+  background-size:100% 2.1rem;padding:0;display:block}
+.efoot{display:flex;justify-content:space-between;color:var(--muted);font-size:.82rem;padding:10px 22px;border-top:1px solid var(--line)}
+#eErr{color:var(--danger)}
+
+/* ---------- Stickers ---------- */
+#stkLayer{position:absolute;inset:0;pointer-events:none}
+.stk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;position:absolute;width:76px;height:76px;pointer-events:auto;touch-action:none;cursor:grab;
+  transform:translate(-50%,-50%) rotate(var(--r)) scale(var(--s));
+  filter:drop-shadow(0 0 .6px #fff) drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.6px #fff) drop-shadow(0 3px 4px rgba(46,34,56,.22))}
+.stk svg{width:100%;height:100%;display:block}
+.stk.sel{outline:1.5px dashed var(--seal);outline-offset:6px;border-radius:12px}
+.stk.drag{cursor:grabbing}
+.stk-tools{position:absolute;transform:translate(-50%,-100%);display:flex;gap:4px;pointer-events:auto;background:var(--ink);border-radius:999px;padding:3px;z-index:2}
+.stk-tools button{border:none;background:transparent;color:var(--bg);width:30px;height:30px;border-radius:50%;font-size:1rem;line-height:1}
+.stk-tools button:hover{background:rgba(255,255,255,.15)}
+#tray{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 24px rgba(46,34,56,.12);animation:rise .22s ease;z-index:3}
+.tray-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-family:var(--serif)}
+.tray-head button{border:none;background:none;color:var(--muted)}
+.tray-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px;max-width:640px;margin:0 auto}
+.tray-grid button{border:none;background:var(--bg);border-radius:14px;aspect-ratio:1;padding:8px;transition:transform .1s}
+.tray-grid button:hover{transform:rotate(-6deg) scale(1.06)}
+.tray-grid svg{width:100%;height:100%;display:block}
+
+@media (max-width:420px){
+  .keypad{grid-template-columns:repeat(3,64px);gap:12px 18px}
+  .key{width:64px;height:64px}
+  .stk{width:64px;height:64px}
+}
+/* ---------- Phones & touch screens ---------- */
+@media (pointer: coarse){
+  .citem .cdel{width:40px;height:40px}
+  .stk-tools button{width:40px;height:40px;font-size:1.15rem}
+  .chip{padding:8px 14px}
+  .tray-grid{grid-template-columns:repeat(auto-fill,minmax(66px,1fr))}
+  .cfoot button{padding:10px 6px}
+  .ebar .btn{padding:9px 16px}
+}
+@media (max-width:560px){
+  #app{padding-left:16px;padding-right:16px}
+  .topbar{margin-bottom:26px}
+  .ebar{padding:10px 12px;gap:8px}
+  .ebar .btn{padding:8px 12px}
+  #stkBtn .lbl{display:none}
+  .epage{padding:18px 16px 80px}
+  .efoot{padding:8px 16px}
+  .entry{grid-template-columns:44px 1fr auto;gap:10px}
+  .eday{font-size:1.6rem}
+  .eside svg{width:20px;height:20px}
+  .clist{padding:14px 14px 8px;border-radius:18px}
+  .navbtn{min-width:80px;padding:4px 12px}
+}
+@media (max-height:640px) and (max-width:560px){
+  #seal{width:96px;height:96px;margin-bottom:12px}
+  #lockSub{margin-bottom:12px}
+  .keypad{gap:10px 18px}
+  .key{width:58px;height:58px;font-size:1.4rem}
+}
+
+/* ---------- Computers & tablets ---------- */
+.kbd-tip{display:none;font-size:.82rem;color:var(--muted);margin:0 0 8px}
+kbd{font-family:var(--sans);font-size:.78rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:var(--surface)}
+@media (hover: hover) and (pointer: fine){
+  .kbd-tip{display:block}
+  .btn:hover{border-color:var(--muted)}
+  .btn.primary:hover{opacity:.9}
+  .navbtn:hover .navicon{background:var(--line)}
+  .navbtn[aria-current="page"]:hover .navicon{background:var(--seal)}
+  .chip:hover{border-color:var(--muted)}
+  .key:hover{background:var(--line)}
+}
+@media (min-width:900px){
+  #app{max-width:820px;padding-left:32px;padding-right:32px}
+  #lists{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  #lists .clist{margin-bottom:0}
+  #lists .empty{grid-column:1 / -1}
+  .bottomnav{left:50%;right:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(820px,calc(100% - 48px));
+    border:1px solid var(--line);border-radius:26px;padding:8px 14px;box-shadow:0 10px 30px rgba(46,34,56,.12)}
+  #editor{background:var(--bg)}
+  .ebar{max-width:900px;width:100%;margin:0 auto;border-bottom:none;padding:16px 24px}
+  .escroll{padding:0 24px}
+  .epage{background:var(--surface);border:1px solid var(--line);border-radius:22px;margin:4px auto 40px;padding:36px 48px 90px;
+    box-shadow:0 12px 40px rgba(46,34,56,.08)}
+  .efoot{max-width:900px;width:100%;margin:0 auto;border-top:none;padding:10px 24px}
+  #tray{left:50%;right:auto;transform:translateX(-50%);width:min(720px,calc(100% - 48px));bottom:20px;border:1px solid var(--line);border-radius:22px;animation:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<section id="lock" aria-live="polite">
+  <div class="lock-inner">
+    <svg id="seal" viewBox="0 0 160 160" aria-hidden="true"></svg>
+    <h1 id="lockTitle">Opening your journal</h1>
+    <p id="lockSub">One moment…</p>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <p id="lockMsg" role="alert"></p>
+    <div class="keypad" id="keypad" aria-disabled="true"></div>
+    <button id="lenBtn" class="linkbtn hidden" type="button">Use a 6-digit PIN instead</button>
+    <button id="cancelBtn" class="linkbtn hidden" type="button">Cancel</button>
+    <button id="resetBtn" class="hidden" type="button">Forgot your PIN? Erase journal</button>
+  </div>
+</section>
+
+<main id="app" class="hidden">
+  <div class="topbar">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="var(--seal)"/><circle cx="12" cy="12" r="4" fill="var(--bg)" opacity=".85"/></svg>
+      Sealed Journal
+    </div>
+    <div class="topactions">
+    <button class="btn iconbtn" id="setBtn" type="button" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+    <button class="btn" id="lockBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      Lock
+    </button>
+    </div>
+  </div>
+  <div id="viewHome">
+  <section class="today">
+    <h2 class="weekday" id="tWeekday"></h2>
+    <p class="datefull" id="tDate"></p>
+    <p id="tCount"></p>
+    <button class="btn primary" id="newBtn" type="button">Write today's page</button>
+  </section>
+  <button class="promo hidden" id="promo" type="button">
+    <span class="spark" aria-hidden="true">✦</span>
+    <span><strong>Make it yours with Premium</strong><span class="sub">More themes, fonts and stickers. No ads.</span></span>
+  </button>
+  <p class="kbd-tip">Press <kbd>N</kbd> for a new page, <kbd>/</kbd> to search, <kbd>L</kbd> to lock.</p>
+  <input class="search" id="search" type="search" placeholder="Search your pages" aria-label="Search your pages" enterkeyhint="search">
+  <div id="list"></div>
+  <p class="store-note" id="storeNote"></p>
+  <div class="adwrap hidden" data-ad="home"></div>
+  </div>
+
+  <div id="viewLists" class="hidden">
+    <section class="lists-head">
+      <h2>Checklists</h2>
+      <p id="lCount"></p>
+      <button class="btn primary" id="newListBtn" type="button">New checklist</button>
+    </section>
+    <p class="kbd-tip">Press <kbd>Enter</kbd> to add each item.</p>
+    <p id="listErr" role="alert"></p>
+    <div id="lists"></div>
+    <div class="adwrap hidden" data-ad="lists"></div>
+  </div>
+
+  <nav class="bottomnav" aria-label="Sections">
+    <div class="navwrap">
+      <button class="navbtn" id="navHome" type="button" aria-current="page">
+        <span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg></span>
+        Home
+      </button>
+      <button class="navbtn" id="navLists" type="button">
+        <span class="navicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 1.5 1.5L8 5"/><path d="m4 12 1.5 1.5L8 11"/><path d="m4 18 1.5 1.5L8 17"/><path d="M11 6h9M11 12h9M11 18h9"/></svg></span>
+        Checklists
+      </button>
+    </div>
+  </nav>
+</main>
+
+<section id="editor" class="hidden" aria-label="Journal page">
+  <div class="ebar">
+    <button class="btn" id="doneBtn" type="button" title="Save and close (Ctrl+S)">Done</button>
+    <input type="date" id="eDate" aria-label="Page date">
+    <span class="spacer"></span>
+    <button class="btn" id="stkBtn" type="button" aria-expanded="false" aria-label="Stickers" title="Stickers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 4h16v9l-7 7H4z"/><path d="M13 20v-7h7"/></svg>
+      <span class="lbl">Stickers</span>
+    </button>
+    <button class="btn danger hidden" id="delBtn" type="button">Delete</button>
+  </div>
+  <div class="escroll" id="escroll">
+    <div class="epage" id="epage">
+      <div class="chips fonts" id="fonts" role="group" aria-label="Font"></div>
+      <div class="chips moods" id="moods" role="group" aria-label="Mood"></div>
+      <input id="eTitle" type="text" enterkeyhint="next" placeholder="Give this page a title" aria-label="Title" maxlength="140">
+      <textarea id="eBody" aria-label="Your page"></textarea>
+      <div id="stkLayer"></div>
+    </div>
+  </div>
+  <div class="efoot"><span id="eErr"></span><span id="eCount">0 words</span></div>
+  <div id="tray" class="hidden" role="dialog" aria-label="Sticker drawer">
+    <div class="tray-head"><span>Add a sticker</span><button type="button" id="trayClose">Close</button></div>
+    <div class="tray-grid" id="trayGrid"></div>
+  </div>
+</section>
+
+<section id="settings" class="hidden" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="setTitle">Settings</h2><button class="btn" id="setClose" type="button">Close</button></div>
+    <div class="srow">
+      <div><strong>Premium</strong><p id="premInfo">More themes, fonts and stickers. No ads.</p></div>
+      <button class="btn primary" id="premRowBtn" type="button">Go Premium</button>
+    </div>
+    <div class="sblock">
+      <strong>Theme</strong>
+      <div class="themes" id="themes" role="group" aria-label="Theme"></div>
+      <p id="themeNote"></p>
+    </div>
+    <div class="srow">
+      <div><strong>Download backup</strong><p id="backupInfo">Saves an encrypted copy of every page and checklist. You'll need your PIN to open it.</p></div>
+      <button class="btn" id="exportBtn" type="button">Download</button>
+    </div>
+    <div class="srow">
+      <div><strong>Restore from backup</strong><p>Replaces everything on this device with a backup file.</p></div>
+      <button class="btn" id="importBtn" type="button">Choose file</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="srow">
+      <div><strong>Change PIN</strong><p>Pick a new 4- or 6-digit PIN. Every page is re-sealed with it.</p></div>
+      <button class="btn" id="chgPinBtn" type="button">Change PIN</button>
+    </div>
+    <div class="srow">
+      <div><strong>Install the app</strong><p id="installHint"></p></div>
+      <button class="btn hidden" id="installBtn" type="button">Install</button>
+    </div>
+    <p id="setMsg" role="status"></p>
+    <p class="slinks"><a href="privacy.html">Privacy policy</a>&nbsp;&nbsp;&nbsp;<a href="terms.html">Terms and refunds</a>&nbsp;&nbsp;&nbsp;<a href="./">About</a></p>
+  </div>
+</section>
+<section id="premium" class="hidden" role="dialog" aria-modal="true" aria-labelledby="premTitle">
+  <div class="psheet">
+    <div class="sheet-head"><span></span><button class="btn" id="premClose" type="button">Close</button></div>
+    <h2 id="premTitle">Sealed Journal Premium</h2>
+    <p class="lead" id="premLead">Make your journal feel like yours.</p>
+    <div id="premActive" class="pstatus hidden"></div>
+    <div id="premBuy">
+      <ul class="perks">
+        <li>8 themes, from Blush and Butter to Midnight</li>
+        <li>7 fonts, including Bubbly, Script and Typewriter</li>
+        <li>All 14 stickers: butterfly, rainbow, washi tape and more</li>
+        <li>No ads, anywhere in the app</li>
+        <li>Your pages stay encrypted on your device, same as always</li>
+      </ul>
+      <div class="plans" id="plans">
+        <button class="plan" type="button" data-plan="yearly" aria-pressed="false"><span class="pname">1 year</span><span class="pprice" data-price="yearly">—</span><span class="pnote">One payment, no auto-renew</span></button>
+        <button class="plan" type="button" data-plan="lifetime" aria-pressed="true"><span class="tag">Best value</span><span class="pname">Forever</span><span class="pprice" data-price="lifetime">—</span><span class="pnote">Pay once, keep it</span></button>
+      </div>
+      <button class="btn primary" id="payBtn" type="button">Continue to payment</button>
+      <p id="payMsg" role="status"></p>
+    </div>
+    <details class="pfoot" id="restoreBox">
+      <summary>Already bought Premium?</summary>
+      <label for="codeIn">Paste your Premium code</label>
+      <div class="row"><input id="codeIn" type="text" autocomplete="off" spellcheck="false" placeholder="Premium code"><button class="btn" id="codeBtn" type="button">Activate</button></div>
+      <label for="payIdIn">Or enter the payment ID from your Razorpay receipt email (starts with pay_)</label>
+      <div class="row"><input id="payIdIn" type="text" autocomplete="off" spellcheck="false" placeholder="pay_…"><button class="btn" id="payIdBtn" type="button">Restore</button></div>
+    </details>
+  </div>
+</section>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const enc = new TextEncoder(), dec = new TextDecoder();
+
+/* ---------- Seal artwork ---------- */
+(function drawSeal(){
+  let h = "";
+  for (let i = 0; i < 20; i++){ const a = i / 20 * Math.PI * 2;
+    h += `<circle class="wax" cx="${80 + Math.cos(a) * 62}" cy="${80 + Math.sin(a) * 62}" r="13"/>`; }
+  h += `<circle class="wax" cx="80" cy="80" r="64"/><circle class="ring" cx="80" cy="80" r="50"/>`;
+  for (let i = 0; i < 6; i++) h += `<ellipse class="petal" cx="80" cy="58" rx="9" ry="20" transform="rotate(${i * 60} 80 80)"/>`;
+  h += `<circle class="core" cx="80" cy="80" r="8"/>`;
+  $("#seal").innerHTML = h;
+})();
+
+/* ---------- Fonts & stickers ---------- */
+const FONTS = [
+  { k: "classic", label: "Classic", fam: '"Young Serif", Georgia, serif', size: "1.08rem", title: "1.8rem" },
+  { k: "hand", label: "Handwritten", fam: '"Caveat", "Segoe Print", cursive', size: "1.55rem", title: "2.4rem" },
+  { k: "diary", label: "Diary", fam: '"Patrick Hand", "Comic Sans MS", cursive', size: "1.28rem", title: "1.95rem" },
+  { k: "type", label: "Typewriter", fam: '"Special Elite", "Courier New", monospace', size: "1rem", title: "1.6rem", pro: true },
+  { k: "elegant", label: "Elegant", fam: '"Cormorant Garamond", Georgia, serif', size: "1.3rem", title: "2.1rem", pro: true },
+  { k: "bubbly", label: "Bubbly", fam: '"Fredoka", "Trebuchet MS", sans-serif', size: "1.1rem", title: "1.85rem", pro: true },
+  { k: "script", label: "Script", fam: '"Dancing Script", "Segoe Script", cursive', size: "1.45rem", title: "2.3rem", pro: true }
+];
+const FREE_STICKERS = ["heart", "star", "moon", "flower", "cloud", "leaf"];
+const fontOf = k => FONTS.find(f => f.k === k) || FONTS[0];
+
+const V = inner => `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
+const STK = {
+  heart:    { label: "Heart", svg: V('<path d="M32 54C10 38 5 26 11 17c6-8 16-6 21 3 5-9 15-11 21-3 6 9 1 21-21 37z" fill="#E88AA5"/><path d="M18 22c2-3 5-4 8-3" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>') },
+  star:     { label: "Star", svg: V('<path d="M32 6l7.6 17.5 19 1.7-14.4 12.6 4.3 18.6L32 46.6 15.5 56.4l4.3-18.6L5.4 25.2l19-1.7z" fill="#F2C75C" stroke="#E0AE3C" stroke-width="2" stroke-linejoin="round"/>') },
+  moon:     { label: "Moon", svg: V('<path d="M42 8a25 25 0 1 0 14 38A21 21 0 1 1 42 8z" fill="#BCA9E6"/><circle cx="26" cy="30" r="3" fill="#A48FD6"/><circle cx="33" cy="44" r="2" fill="#A48FD6"/>') },
+  flower:   { label: "Flower", svg: V('<g fill="#F4A9C0">' + [0,72,144,216,288].map(a => `<circle cx="32" cy="18" r="11" transform="rotate(${a} 32 32)"/>`).join("") + '</g><circle cx="32" cy="32" r="8" fill="#F6D26B"/>') },
+  cloud:    { label: "Cloud", svg: V('<path d="M18 48h29a11 11 0 0 0 1-22 15 15 0 0 0-28-4 11 11 0 0 0-2 26z" fill="#CFE2F3"/><circle cx="26" cy="37" r="1.8" fill="#6E7FA8"/><circle cx="38" cy="37" r="1.8" fill="#6E7FA8"/><path d="M29 41q3 3 6 0" stroke="#6E7FA8" stroke-width="1.8" fill="none" stroke-linecap="round"/>') },
+  leaf:     { label: "Leaf", svg: V('<path d="M10 54C10 26 29 10 55 9c0 26-15 45-45 45z" fill="#8DBF95"/><path d="M12 52L44 20" stroke="#5E8F66" stroke-width="2.5" stroke-linecap="round"/>') },
+  sun:      { label: "Sun", svg: V('<g stroke="#F3B94A" stroke-width="4" stroke-linecap="round">' + [0,45,90,135,180,225,270,315].map(a => `<line x1="32" y1="6" x2="32" y2="13" transform="rotate(${a} 32 32)"/>`).join("") + '</g><circle cx="32" cy="32" r="14" fill="#F6C453"/>') },
+  cherry:   { label: "Cherries", svg: V('<path d="M23 40Q28 20 45 11M41 42Q41 26 45 11" stroke="#6E8F4E" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M45 11c6-3 11 0 12 4-6 2-10 1-12-4z" fill="#8DBF95"/><circle cx="22" cy="46" r="10" fill="#D9485F"/><circle cx="41" cy="48" r="10" fill="#E0566C"/><circle cx="19" cy="43" r="2.5" fill="#fff" opacity=".6"/>') },
+  sparkle:  { label: "Sparkle", svg: V('<path d="M30 4c2 20 8 26 28 28-20 2-26 8-28 28-2-20-8-26-28-28 20-2 26-8 28-28z" fill="#CDB6F0"/><path d="M52 6c.7 5 2 6.3 7 7-5 .7-6.3 2-7 7-.7-5-2-6.3-7-7 5-.7 6.3-2 7-7z" fill="#F2C75C"/>') },
+  butterfly:{ label: "Butterfly", svg: V('<ellipse cx="20" cy="24" rx="13" ry="15" fill="#A9C6F0" transform="rotate(-20 20 24)"/><ellipse cx="44" cy="24" rx="13" ry="15" fill="#A9C6F0" transform="rotate(20 44 24)"/><ellipse cx="22" cy="44" rx="9" ry="10" fill="#F2B6CF"/><ellipse cx="42" cy="44" rx="9" ry="10" fill="#F2B6CF"/><rect x="30" y="18" width="4" height="34" rx="2" fill="#5A4A6B"/><path d="M31 18q-4-8-8-9M33 18q4-8 8-9" stroke="#5A4A6B" stroke-width="1.8" fill="none" stroke-linecap="round"/>') },
+  coffee:   { label: "Coffee", svg: V('<path d="M24 12q-3 4 0 8M32 10q-3 5 0 10M40 12q-3 4 0 8" stroke="#B9A7C7" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M12 26h34v14a13 13 0 0 1-13 13h-8a13 13 0 0 1-13-13z" fill="#EBD9C6"/><path d="M46 30h4a7 7 0 0 1 0 14h-5" stroke="#EBD9C6" stroke-width="5" fill="none"/><path d="M22 36c2-3 5-3 7 0 2-3 5-3 7 0-3 5-7 7-7 7s-4-2-7-7z" fill="#E88AA5"/>') },
+  rainbow:  { label: "Rainbow", svg: V('<g fill="none" stroke-width="6" stroke-linecap="round"><path d="M8 46a24 24 0 0 1 48 0" stroke="#E88AA5"/><path d="M15 46a17 17 0 0 1 34 0" stroke="#F2C75C"/><path d="M22 46a10 10 0 0 1 20 0" stroke="#8DBF95"/></g><circle cx="10" cy="49" r="6" fill="#fff"/><circle cx="16" cy="51" r="5" fill="#fff"/><circle cx="54" cy="49" r="6" fill="#fff"/><circle cx="48" cy="51" r="5" fill="#fff"/>') },
+  tape:     { label: "Washi tape", svg: V('<g transform="rotate(-12 32 32)"><rect x="2" y="23" width="60" height="18" fill="#E7C6CF" opacity=".9"/><g stroke="#fff" stroke-width="3" opacity=".6">' + [8,18,28,38,48,58].map(x => `<line x1="${x}" y1="23" x2="${x-6}" y2="41"/>`).join("") + '</g></g>') },
+  stamp:    { label: "Today stamp", svg: V('<circle cx="32" cy="32" r="26" fill="#F8F1F5"/><circle cx="32" cy="32" r="22" fill="none" stroke="#8C5A7A" stroke-width="2" stroke-dasharray="3 3"/><text x="32" y="37" text-anchor="middle" font-family="Caveat, cursive" font-size="17" fill="#8C5A7A">today ♡</text>') }
+};
+
+/* ---------- Crypto ---------- */
+function toB64(u8){ let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function fromB64(s){ const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+async function deriveKey(pin, salt){
+  const base = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 210000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+async function sealObj(key, obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(obj)));
+  return { iv: toB64(iv), ct: toB64(new Uint8Array(ct)) };
+}
+async function openObj(key, rec){
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(rec.iv) }, key, fromB64(rec.ct));
+  return JSON.parse(dec.decode(pt));
+}
+
+/* ---------- Storage ---------- */
+const Store = {
+  mode: "memory", mem: { vault: null, entries: {}, lists: {} },
+  async init(){
+    try { localStorage.setItem("sj:t", "1"); localStorage.removeItem("sj:t"); this.mode = "local"; } catch (e) { this.mode = "memory"; }
+  },
+  _read(kind){
+    if (this.mode === "local"){ try { return JSON.parse(localStorage.getItem("sj:" + kind) || "{}"); } catch (e) { return {}; } }
+    return Object.assign({}, this.mem[kind] || {});
+  },
+  _write(kind, m){
+    if (this.mode === "local") localStorage.setItem("sj:" + kind, JSON.stringify(m));
+    else this.mem[kind] = m;
+  },
+  async getVault(){
+    if (this.mode === "local"){ try { const v = localStorage.getItem("sj:vault"); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+    return this.mem.vault;
+  },
+  async setVault(v){ if (this.mode === "local") localStorage.setItem("sj:vault", JSON.stringify(v)); else this.mem.vault = v; },
+  async list(kind){ const m = this._read(kind); return Object.keys(m).map(id => Object.assign({ id }, m[id])); },
+  async put(kind, id, rec){ const m = this._read(kind); m[id] = rec; this._write(kind, m); },
+  async remove(kind, id){ const m = this._read(kind); delete m[id]; this._write(kind, m); },
+  /* replace a whole journal in as few writes as possible (used by change PIN and restore) */
+  async replaceAll(vault, entriesMap, listsMap){
+    if (this.mode === "local"){
+      const prev = { v: localStorage.getItem("sj:vault"), e: localStorage.getItem("sj:entries"), l: localStorage.getItem("sj:lists") };
+      try {
+        localStorage.setItem("sj:entries", JSON.stringify(entriesMap));
+        localStorage.setItem("sj:lists", JSON.stringify(listsMap));
+        localStorage.setItem("sj:vault", JSON.stringify(vault));
+      } catch (err) {
+        try { ["vault", "entries", "lists"].forEach((k, i) => { const val = [prev.v, prev.e, prev.l][i]; if (val === null) localStorage.removeItem("sj:" + k); else localStorage.setItem("sj:" + k, val); }); } catch (e) {}
+        throw err;
+      }
+      return;
+    }
+    this.mem = { vault, entries: entriesMap, lists: listsMap };
+  },
+  async wipe(){
+    if (this.mode === "local"){ try { ["entries", "lists", "vault"].forEach(k => localStorage.removeItem("sj:" + k)); } catch (e) {} return; }
+    this.mem = { vault: null, entries: {}, lists: {} };
+  }
+};
+
+/* ---------- State ---------- */
+const MOODS = [
+  { k: "calm", label: "Calm" }, { k: "bright", label: "Bright" }, { k: "tender", label: "Tender" },
+  { k: "heavy", label: "Heavy" }, { k: "restless", label: "Restless" }
+];
+const PROMPTS = [
+  "What felt soft today?", "Something small you want to remember.", "Where did your attention keep drifting?",
+  "Describe the light in the room right now.", "What are you carrying into tomorrow?", "A sentence you'd tell yourself a year ago."
+];
+let key = null, vault = null, entries = [];
+let lockMode = "loading", pin = "", firstPin = "", fails = 0, cooldownUntil = 0, pinLen = 4;
+let current = null, currentMood = null, currentFont = "classic", stickers = [], selSt = null, dirty = false;
+let lastFont = "classic"; try { lastFont = localStorage.getItem("sj:font") || "classic"; } catch (e) {}
+
+const pad = n => String(n).padStart(2, "0");
+const todayISO = () => { const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+const parseISO = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+
+/* ---------- Lock screen ---------- */
+function buildKeypad(){
+  const kp = $("#keypad");
+  ["1","2","3","4","5","6","7","8","9","","0","del"].forEach(k => {
+    if (k === ""){ kp.appendChild(document.createElement("span")); return; }
+    const b = document.createElement("button"); b.type = "button"; b.className = "key" + (k === "del" ? " ghost" : "");
+    b.textContent = k === "del" ? "Delete" : k; b.setAttribute("aria-label", k === "del" ? "Delete digit" : "Digit " + k);
+    b.addEventListener("click", () => press(k)); kp.appendChild(b);
+  });
+}
+function setLock(title, sub, msg){ $("#lockTitle").textContent = title; $("#lockSub").textContent = sub || ""; $("#lockMsg").textContent = msg || ""; }
+function renderDots(){
+  const box = $("#dots");
+  if (box.children.length !== pinLen){ box.innerHTML = ""; for (let i = 0; i < pinLen; i++){ const s = document.createElement("span"); s.className = "dot"; box.appendChild(s); } }
+  [...box.children].forEach((d, i) => d.classList.toggle("on", i < pin.length));
+}
+function setLenBtn(show){
+  const b = $("#lenBtn"); b.classList.toggle("hidden", !show);
+  b.textContent = pinLen === 4 ? "Use a 6-digit PIN instead" : "Use a 4-digit PIN instead";
+}
+function keypadEnabled(on){ $("#keypad").setAttribute("aria-disabled", on ? "false" : "true"); }
+function shake(){ const d = $("#dots"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake"); }
+
+function showSetup(msg){
+  lockMode = "setup1"; pin = ""; firstPin = ""; renderDots(); keypadEnabled(true);
+  $("#resetBtn").classList.add("hidden"); $("#cancelBtn").classList.add("hidden"); setLenBtn(true);
+  setLock("Seal your journal", "Choose a " + pinLen + "-digit PIN. Your pages are encrypted with it, so a forgotten PIN can't be recovered.", msg);
+}
+function showChange(msg){
+  lockMode = "change1"; pin = ""; firstPin = ""; renderDots(); keypadEnabled(true);
+  $("#resetBtn").classList.add("hidden"); $("#cancelBtn").classList.remove("hidden"); setLenBtn(true);
+  setLock("Choose a new PIN", "Enter a new " + pinLen + "-digit PIN.", msg);
+}
+function showUnlock(msg){
+  pinLen = (vault && vault.len) || 4;
+  lockMode = "unlock"; pin = ""; renderDots(); keypadEnabled(true);
+  $("#cancelBtn").classList.add("hidden"); setLenBtn(false);
+  $("#resetBtn").classList.remove("hidden", "armed"); $("#resetBtn").textContent = "Forgot your PIN? Erase journal";
+  setLock("Your journal is sealed", "Enter your PIN to open it.", msg);
+}
+function press(k){
+  if (lockMode === "loading" || lockMode === "busy") return;
+  if (k === "del"){ pin = pin.slice(0, -1); renderDots(); return; }
+  if (pin.length >= pinLen) return;
+  pin += k; renderDots(); $("#lockMsg").textContent = "";
+  if (pin.length === pinLen) setTimeout(submitPin, 120);
+}
+async function submitPin(){
+  if (lockMode === "setup1"){
+    firstPin = pin; pin = ""; renderDots(); lockMode = "setup2"; setLenBtn(false);
+    setLock("Seal your journal", "Enter the same PIN once more."); return;
+  }
+  if (lockMode === "setup2"){
+    if (pin !== firstPin){ shake(); showSetup("Those PINs didn't match. Choose a PIN again."); return; }
+    lockMode = "busy"; keypadEnabled(false); setLock("Sealing…", "Setting up your journal.");
+    try {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const k = await deriveKey(pin, salt);
+      const v = { v: 1, len: pinLen, salt: toB64(salt), check: await sealObj(k, { ok: "sealed-journal" }) };
+      await Store.setVault(v); vault = v; key = k; entries = []; lists = [];
+      openJournal();
+    } catch (e) { showSetup("Couldn't save your PIN. Check your connection and try again."); }
+    return;
+  }
+  if (lockMode === "change1"){
+    firstPin = pin; pin = ""; renderDots(); lockMode = "change2"; setLenBtn(false);
+    setLock("Choose a new PIN", "Enter the new PIN once more."); return;
+  }
+  if (lockMode === "change2"){
+    if (pin !== firstPin){ shake(); showChange("Those PINs didn't match. Try again."); return; }
+    lockMode = "busy"; keypadEnabled(false); $("#cancelBtn").classList.add("hidden"); setLock("Re-sealing…", "Encrypting every page with your new PIN.");
+    try {
+      await flushLists();
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const k = await deriveKey(pin, salt);
+      const nv = { v: 1, len: pinLen, salt: toB64(salt), check: await sealObj(k, { ok: "sealed-journal" }) };
+      const em = {}, lm = {};
+      for (const e of entries){
+        const s = await sealObj(k, { title: e.title, body: e.body, mood: e.mood, date: e.date, font: e.font, stickers: e.stickers });
+        em[e.id] = { iv: s.iv, ct: s.ct, createdAt: e.createdAt || Date.now(), updatedAt: e.updatedAt || Date.now() };
+      }
+      for (const l of lists.filter(l => l.saved || l.title.trim() || l.items.length)){
+        const s = await sealObj(k, { title: l.title, items: l.items });
+        lm[l.id] = { iv: s.iv, ct: s.ct, createdAt: l.createdAt || Date.now(), updatedAt: l.updatedAt || Date.now() }; l.saved = true;
+      }
+      await Store.replaceAll(nv, em, lm);
+      vault = nv; key = k;
+      $("#lock").classList.add("hidden"); toast("PIN changed. Use your new PIN next time.");
+    } catch (e) {
+      pinLen = (vault && vault.len) || 4;
+      $("#lock").classList.add("hidden"); toast("Couldn't change your PIN. Your old PIN still works.");
+    }
+    return;
+  }
+  if (lockMode === "unlock"){
+    if (Date.now() < cooldownUntil){ pin = ""; renderDots(); $("#lockMsg").textContent = "Too many tries. Wait a few seconds."; return; }
+    lockMode = "busy"; keypadEnabled(false); $("#lockSub").textContent = "Unsealing…";
+    try {
+      const k = await deriveKey(pin, fromB64(vault.salt));
+      await openObj(k, vault.check);
+      key = k; fails = 0;
+      await loadEntries();
+      await loadLists();
+      openJournal();
+    } catch (e) {
+      fails++; shake();
+      if (fails >= 5){ cooldownUntil = Date.now() + 30000; fails = 0; showUnlock("Too many wrong PINs. Try again in 30 seconds."); }
+      else showUnlock("That PIN isn't right. Try again.");
+    }
+  }
+}
+async function loadEntries(){
+  const raw = await Store.list("entries"); const out = [];
+  for (const r of raw){
+    try {
+      const d = await openObj(key, r);
+      out.push({ id: r.id, createdAt: r.createdAt, updatedAt: r.updatedAt, title: d.title || "", body: d.body || "", mood: d.mood || null,
+        date: d.date || todayISO(), font: d.font || "classic", stickers: Array.isArray(d.stickers) ? d.stickers : [] });
+    } catch (e) {}
+  }
+  entries = out;
+}
+function openJournal(){
+  renderApp(); showView("home");
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  const lock = $("#lock"); lock.classList.add("opening");
+  setTimeout(() => { lock.classList.add("hidden"); lock.classList.remove("opening"); $("#app").classList.remove("hidden"); $("#newBtn").focus(); }, 650);
+}
+function lockJournal(){
+  Object.keys(listTimers).forEach(id => clearTimeout(listTimers[id])); listTimers = {};
+  key = null; entries = []; lists = []; current = null; stickers = []; selSt = null;
+  $("#lists").innerHTML = ""; $("#listErr").textContent = "";
+  $("#editor").classList.add("hidden"); $("#tray").classList.add("hidden"); $("#settings").classList.add("hidden"); $("#premium").classList.add("hidden"); endPreview();
+  $("#eTitle").value = ""; $("#eBody").value = ""; $("#stkLayer").innerHTML = "";
+  $("#list").innerHTML = ""; $("#search").value = "";
+  $("#app").classList.add("hidden"); $("#lock").classList.remove("hidden");
+  showUnlock();
+}
+let resetTimer = null;
+$("#resetBtn").addEventListener("click", async () => {
+  const b = $("#resetBtn");
+  if (!b.classList.contains("armed")){
+    b.classList.add("armed"); b.textContent = "This erases every page. Tap again to erase.";
+    clearTimeout(resetTimer); resetTimer = setTimeout(() => { b.classList.remove("armed"); b.textContent = "Forgot your PIN? Erase journal"; }, 4000);
+    return;
+  }
+  clearTimeout(resetTimer); lockMode = "busy"; keypadEnabled(false); setLock("Erasing…", "Removing all pages.");
+  try { await Store.wipe(); vault = null; showSetup("Journal erased. Choose a new PIN to start fresh."); }
+  catch (e) { showUnlock("Couldn't erase the journal. Check your connection and try again."); }
+});
+document.addEventListener("keydown", e => {
+  if (!$("#lock").classList.contains("hidden") || !key) return;
+  if (!$("#premium").classList.contains("hidden")){ if (e.key === "Escape") closePremium(); return; }
+  if (!$("#settings").classList.contains("hidden")){ if (e.key === "Escape") closeSettings(); return; }
+  const editorOpen = !$("#editor").classList.contains("hidden");
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName);
+  if (editorOpen){
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s"){ e.preventDefault(); $("#doneBtn").click(); return; }
+    if (e.key === "Escape"){
+      e.preventDefault();
+      if (!$("#tray").classList.contains("hidden")) toggleTray(false);
+      else if (selSt){ selSt = null; renderStickers(); }
+      else $("#doneBtn").click();
+    }
+    return;
+  }
+  if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === "n"){ e.preventDefault(); if ($("#viewLists").classList.contains("hidden")) openEditor(null); else $("#newListBtn").click(); }
+  else if (k === "/"){ e.preventDefault(); showView("home"); $("#search").focus(); }
+  else if (k === "l"){ e.preventDefault(); $("#lockBtn").click(); }
+});
+document.addEventListener("keydown", e => {
+  if ($("#lock").classList.contains("hidden")) return;
+  if (/^[0-9]$/.test(e.key)) press(e.key);
+  else if (e.key === "Backspace") press("del");
+});
+document.addEventListener("visibilitychange", () => { if (document.hidden && key) flushLists(); });
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (key && hiddenAt && Date.now() - hiddenAt > 60000){
+    const pending = [flushLists()]; if (current && dirty) pending.push(saveCurrent().catch(() => {}));
+    Promise.all(pending).finally(lockJournal);
+  }
+});
+
+/* ---------- Main list ---------- */
+function renderApp(){
+  refreshPremiumUI();
+  const now = new Date();
+  $("#tWeekday").textContent = now.toLocaleDateString(undefined, { weekday: "long" });
+  $("#tDate").textContent = now.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const n = entries.length;
+  $("#tCount").textContent = n === 0 ? "Nothing written yet." : n === 1 ? "1 page in your journal." : n + " pages in your journal.";
+  $("#newBtn").textContent = entries.some(e => e.date === todayISO()) ? "Write another page" : "Write today's page";
+  $("#storeNote").textContent = Store.mode === "local" ? "Pages are encrypted with your PIN and saved on this device only. Download a backup from Settings now and then."
+    : "Storage isn't available here, so pages will be gone when you close this tab.";
+  renderList();
+}
+function renderList(){
+  const q = $("#search").value.trim().toLowerCase(); const list = $("#list"); list.innerHTML = "";
+  const shown = entries.filter(e => !q || (e.title + " " + e.body).toLowerCase().includes(q))
+    .sort((a, b) => (b.date.localeCompare(a.date)) || ((b.updatedAt || 0) - (a.updatedAt || 0)));
+  if (!shown.length){
+    const p = document.createElement("p"); p.className = "empty";
+    p.textContent = q ? "No pages match that search." : "Your first page is waiting. Whatever you write stays sealed behind your PIN.";
+    list.appendChild(p); return;
+  }
+  let lastMonth = "";
+  shown.forEach(e => {
+    const d = parseISO(e.date);
+    const month = d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    if (month !== lastMonth){ const h = document.createElement("h3"); h.className = "month"; h.textContent = month; list.appendChild(h); lastMonth = month; }
+    const b = document.createElement("button"); b.type = "button"; b.className = "entry";
+    const day = document.createElement("span"); day.className = "eday"; day.textContent = d.getDate();
+    const wd = document.createElement("span"); wd.className = "ewd"; wd.textContent = d.toLocaleDateString(undefined, { weekday: "short" }); day.appendChild(wd);
+    const txt = document.createElement("span");
+    const t = document.createElement("span"); t.className = "etitle"; t.textContent = e.title || "Untitled page";
+    t.style.fontFamily = fontOf(e.font).fam;
+    const s = document.createElement("span"); s.className = "esnip"; s.textContent = e.body.slice(0, 220) || "No words yet.";
+    txt.append(t, s);
+    const side = document.createElement("span"); side.className = "eside";
+    e.stickers.slice(0, 3).forEach(st => { if (STK[st.k]) side.insertAdjacentHTML("beforeend", STK[st.k].svg); });
+    if (e.mood){ const m = document.createElement("span"); m.className = "moodmark"; m.style.background = "var(--" + e.mood + ")"; m.title = e.mood; side.appendChild(m); }
+    b.append(day, txt, side); b.addEventListener("click", () => openEditor(e)); list.appendChild(b);
+  });
+}
+$("#search").addEventListener("input", renderList);
+$("#lockBtn").addEventListener("click", async () => { await flushLists(); lockJournal(); });
+$("#newBtn").addEventListener("click", () => openEditor(null));
+
+/* ---------- Editor: fonts & moods ---------- */
+(function buildChips(){
+  const fb = $("#fonts");
+  FONTS.forEach(f => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.dataset.k = f.k;
+    b.textContent = f.label; b.style.fontFamily = f.fam; if (f.k === "hand" || f.k === "script") b.style.fontSize = "1.1rem";
+    if (f.pro){ const s = document.createElement("span"); s.className = "pro"; s.textContent = "✦"; s.setAttribute("aria-hidden", "true"); b.appendChild(s); b.title = f.label + " (Premium)"; }
+    b.addEventListener("click", () => { if (f.pro && !isPremium() && currentFont !== f.k){ openPremium(); return; } currentFont = f.k; lastFont = f.k; try { localStorage.setItem("sj:font", f.k); } catch (e) {} dirty = true; applyFont(); });
+    fb.appendChild(b);
+  });
+  const mb = $("#moods");
+  MOODS.forEach(m => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.dataset.k = m.k; b.setAttribute("aria-pressed", "false");
+    const i = document.createElement("i"); i.style.background = "var(--" + m.k + ")";
+    b.append(i, document.createTextNode(m.label));
+    b.addEventListener("click", () => { currentMood = currentMood === m.k ? null : m.k; dirty = true; paintMoods(); });
+    mb.appendChild(b);
+  });
+})();
+function applyFont(){
+  const f = fontOf(currentFont), ed = $("#editor");
+  ed.style.setProperty("--pf", f.fam); ed.style.setProperty("--ps", f.size); ed.style.setProperty("--pt", f.title);
+  document.querySelectorAll("#fonts .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === currentFont)));
+  requestAnimationFrame(growBody);
+}
+function paintMoods(){ document.querySelectorAll("#moods .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === currentMood))); }
+function countWords(){ const n = ($("#eBody").value.trim().match(/\S+/g) || []).length; $("#eCount").textContent = n === 1 ? "1 word" : n + " words"; }
+function growBody(){ const t = $("#eBody"); t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+
+/* ---------- Editor: stickers ---------- */
+(function buildTray(){
+  const g = $("#trayGrid");
+  Object.keys(STK).forEach(k => {
+    const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", "Add " + STK[k].label + " sticker");
+    b.innerHTML = STK[k].svg;
+    if (!FREE_STICKERS.includes(k)){ b.insertAdjacentHTML("beforeend", '<span class="lockbadge" aria-hidden="true">✦</span>'); b.setAttribute("aria-label", "Add " + STK[k].label + " sticker (Premium)"); }
+    b.addEventListener("click", () => { if (!FREE_STICKERS.includes(k) && !isPremium()){ toggleTray(false); openPremium(); return; } addSticker(k); });
+    g.appendChild(b);
+  });
+})();
+function toggleTray(open){
+  const t = $("#tray"); const show = open === undefined ? t.classList.contains("hidden") : open;
+  t.classList.toggle("hidden", !show); $("#stkBtn").setAttribute("aria-expanded", String(show));
+}
+$("#stkBtn").addEventListener("click", () => toggleTray());
+$("#trayClose").addEventListener("click", () => toggleTray(false));
+
+function addSticker(k){
+  const sc = $("#escroll");
+  const st = { id: "s" + Math.random().toString(36).slice(2, 8), k, x: 25 + Math.random() * 50,
+    y: Math.round(sc.scrollTop + sc.clientHeight * 0.35 + Math.random() * 60), r: Math.round(Math.random() * 28 - 14), s: 1 };
+  stickers.push(st); selSt = st.id; dirty = true; toggleTray(false); renderStickers();
+}
+function renderStickers(){
+  const layer = $("#stkLayer"); layer.innerHTML = "";
+  stickers.forEach(st => {
+    if (!STK[st.k]) return;
+    const el = document.createElement("div"); el.className = "stk" + (st.id === selSt ? " sel" : "");
+    el.style.left = st.x + "%"; el.style.top = st.y + "px"; el.style.setProperty("--r", st.r + "deg"); el.style.setProperty("--s", st.s);
+    el.innerHTML = STK[st.k].svg; el.setAttribute("role", "img"); el.setAttribute("aria-label", STK[st.k].label + " sticker");
+    attachDrag(el, st); layer.appendChild(el);
+    if (st.id === selSt){
+      const tools = document.createElement("div"); tools.className = "stk-tools";
+      tools.style.left = st.x + "%"; tools.style.top = (st.y - 38 * st.s - 12) + "px";
+      [["−", "Make smaller", () => { st.s = Math.max(0.5, +(st.s - 0.2).toFixed(2)); }],
+       ["+", "Make bigger", () => { st.s = Math.min(2.4, +(st.s + 0.2).toFixed(2)); }],
+       ["↻", "Rotate", () => { st.r = (st.r + 15) % 360; }],
+       ["×", "Remove sticker", () => { stickers = stickers.filter(x => x.id !== st.id); selSt = null; }]].forEach(([txt, lab, fn]) => {
+        const b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.setAttribute("aria-label", lab); b.title = lab;
+        b.addEventListener("pointerdown", e => e.stopPropagation());
+        b.addEventListener("click", e => { e.stopPropagation(); fn(); dirty = true; renderStickers(); });
+        tools.appendChild(b);
+      });
+      layer.appendChild(tools);
+    }
+  });
+}
+function attachDrag(el, st){
+  el.addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    const page = $("#epage"), w = page.clientWidth, h = page.scrollHeight;
+    const sx = e.clientX, sy = e.clientY, ox = st.x, oy = st.y; let moved = false;
+    if (selSt !== st.id){ selSt = st.id; document.querySelectorAll(".stk.sel").forEach(n => n.classList.remove("sel")); el.classList.add("sel"); }
+    const tools = document.querySelector(".stk-tools"); if (tools) tools.remove();
+    el.classList.add("drag"); el.setPointerCapture(e.pointerId);
+    const move = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+      st.x = Math.min(100, Math.max(0, ox + dx / w * 100)); st.y = Math.min(h, Math.max(0, oy + dy));
+      el.style.left = st.x + "%"; el.style.top = st.y + "px";
+    };
+    const up = () => {
+      el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up);
+      if (moved) dirty = true; renderStickers();
+    };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  });
+}
+$("#escroll").addEventListener("pointerdown", e => {
+  if (selSt && !e.target.closest(".stk") && !e.target.closest(".stk-tools")){ selSt = null; renderStickers(); }
+});
+
+/* ---------- Editor: open / save / delete ---------- */
+function openEditor(e){
+  current = e ? Object.assign({}, e) : { id: null, date: todayISO(), title: "", body: "", mood: null, font: lastFont, stickers: [] };
+  currentMood = current.mood; currentFont = current.font || "classic";
+  stickers = (current.stickers || []).map(s => Object.assign({}, s)); selSt = null; dirty = false;
+  $("#eDate").value = current.date; $("#eTitle").value = current.title; $("#eBody").value = current.body;
+  $("#eBody").placeholder = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  $("#delBtn").classList.toggle("hidden", !current.id); $("#delBtn").classList.remove("armed"); $("#delBtn").textContent = "Delete";
+  $("#eErr").textContent = ""; toggleTray(false);
+  $("#editor").classList.remove("hidden"); $("#escroll").scrollTop = 0;
+  paintMoods(); applyFont(); countWords(); renderStickers();
+  (current.id ? $("#eBody") : $("#eTitle")).focus({ preventScroll: true });
+}
+$("#eTitle").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("#eBody").focus(); } });
+["#eTitle", "#eBody", "#eDate"].forEach(s => $(s).addEventListener("input", () => { dirty = true; if (s === "#eBody"){ countWords(); growBody(); } }));
+window.addEventListener("resize", () => { if (current) growBody(); });
+
+async function saveCurrent(){
+  const title = $("#eTitle").value.trim(), body = $("#eBody").value, date = $("#eDate").value || todayISO();
+  if (!current.id && !title && !body.trim() && !stickers.length) return true;
+  const now = Date.now(); const id = current.id || ("p" + now.toString(36) + Math.random().toString(36).slice(2, 7));
+  const data = { title, body, mood: currentMood, date, font: currentFont, stickers: stickers.map(s => ({ id: s.id, k: s.k, x: +s.x.toFixed(2), y: Math.round(s.y), r: s.r, s: s.s })) };
+  const sealed = await sealObj(key, data);
+  const rec = { iv: sealed.iv, ct: sealed.ct, createdAt: current.createdAt || now, updatedAt: now };
+  await Store.put("entries", id, rec);
+  const plain = Object.assign({ id, createdAt: rec.createdAt, updatedAt: now }, data);
+  const i = entries.findIndex(x => x.id === id); if (i >= 0) entries[i] = plain; else entries.push(plain);
+  current = plain; dirty = false; return true;
+}
+$("#doneBtn").addEventListener("click", async () => {
+  const b = $("#doneBtn"); b.disabled = true; b.textContent = "Saving…";
+  try {
+    if (dirty || !current.id) await saveCurrent();
+    $("#editor").classList.add("hidden"); toggleTray(false); current = null; renderApp();
+  } catch (e) { $("#eErr").textContent = "Couldn't save this page. Check your connection and tap Done again."; }
+  b.disabled = false; b.textContent = "Done";
+});
+let delTimer = null;
+$("#delBtn").addEventListener("click", async () => {
+  const b = $("#delBtn");
+  if (!b.classList.contains("armed")){
+    b.classList.add("armed"); b.textContent = "Tap again to delete";
+    clearTimeout(delTimer); delTimer = setTimeout(() => { b.classList.remove("armed"); b.textContent = "Delete"; }, 3500); return;
+  }
+  clearTimeout(delTimer);
+  try {
+    await Store.remove("entries", current.id); entries = entries.filter(x => x.id !== current.id);
+    $("#editor").classList.add("hidden"); current = null; renderApp();
+  } catch (e) { $("#eErr").textContent = "Couldn't delete this page. Try again."; }
+});
+
+/* ---------- Themes ---------- */
+const CFG = window.SJ_CONFIG || {};
+const TOKENS = ["bg", "surface", "ink", "muted", "line", "seal", "seal-hi"];
+const THEMES = [
+  { k: "lilac", label: "Lilac", light: ["#EDE7F1","#F8F4FA","#2E2238","#76688A","#DDD2E4","#8C5A7A","#B07A9C"], dark: ["#17121D","#221B2A","#EEE6F3","#A596B3","#372D42","#9B6688","#C293B2"] },
+  { k: "sage", label: "Sage", light: ["#E7EEE6","#F5F9F4","#1F3326","#5F7A66","#D2DFD1","#5E8A6B","#88B394"], dark: ["#121A14","#1B251E","#E4EFE6","#93AE9A","#2C3A30","#6E9E7C","#9CC5A8"] },
+  { k: "blush", label: "Blush", pro: true, light: ["#F6E9EC","#FCF5F6","#3A2229","#8A6770","#EBD3D9","#C0677F","#DE97AA"], dark: ["#1D1216","#28191E","#F5E6EA","#B8949D","#3E2A31","#C97990","#E4A9B8"] },
+  { k: "butter", label: "Butter", pro: true, light: ["#F6F0DD","#FCF9EE","#3A3120","#857454","#E9DFC0","#B58A2E","#D8B25C"], dark: ["#1A170F","#25211A","#F3ECD9","#B5A67F","#3A3325","#C99B3E","#E0C07A"] },
+  { k: "ocean", label: "Ocean", pro: true, light: ["#E4ECF3","#F4F8FB","#1E2C3A","#5E7489","#CFDCE7","#4F7BA3","#86A9C9"], dark: ["#10161D","#18212B","#E3ECF4","#93A8BC","#2A3643","#6590B8","#9CBBD8"] },
+  { k: "matcha", label: "Matcha", pro: true, light: ["#EAEDDA","#F7F8EE","#2B3020","#6F7757","#D8DDBF","#7E8F3E","#A9BA6A"], dark: ["#15170F","#1F2217","#EEF0DF","#A7AE8E","#363B28","#95A852","#BFCF84"] },
+  { k: "peach", label: "Peach", pro: true, light: ["#F8E7DC","#FDF4EE","#3B261C","#8C6655","#EFD2C1","#C97550","#E9A07F"], dark: ["#1C130F","#281B15","#F7E8DF","#B99585","#3F2C23","#D98A64","#EDB296"] },
+  { k: "midnight", label: "Midnight", pro: true, light: ["#14162B","#1D2040","#ECE9FF","#A3A0CC","#33376A","#9D8CF0","#C6BBFF"], dark: ["#14162B","#1D2040","#ECE9FF","#A3A0CC","#33376A","#9D8CF0","#C6BBFF"] }
+];
+const themeOf = k => THEMES.find(t => t.k === k) || THEMES[0];
+const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+let savedTheme = "lilac", previewTheme = null;
+try { savedTheme = localStorage.getItem("sj:theme") || "lilac"; } catch (e) {}
+function paintTheme(k){
+  const t = themeOf(k), vals = darkMQ.matches ? t.dark : t.light, root = document.documentElement;
+  TOKENS.forEach((n, i) => root.style.setProperty("--" + n, vals[i]));
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute("content", vals[0]));
+}
+function currentThemeKey(){ return previewTheme || savedTheme; }
+if (darkMQ.addEventListener) darkMQ.addEventListener("change", () => paintTheme(currentThemeKey()));
+function buildThemes(){
+  const box = $("#themes"); box.innerHTML = "";
+  THEMES.forEach(t => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "swatch"; b.dataset.k = t.k;
+    b.setAttribute("aria-pressed", String(t.k === currentThemeKey()));
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = t.light[0];
+    const i = document.createElement("i"); i.style.background = t.light[5]; sw.appendChild(i);
+    b.append(sw, document.createTextNode(t.label));
+    if (t.pro && !isPremium()){ const l = document.createElement("span"); l.className = "lockbadge"; l.textContent = "✦"; l.setAttribute("aria-hidden", "true"); b.appendChild(l); b.setAttribute("aria-label", t.label + " (Premium)"); }
+    b.addEventListener("click", () => chooseTheme(t));
+    box.appendChild(b);
+  });
+  $("#themeNote").textContent = previewTheme ? "Previewing " + themeOf(previewTheme).label + ". Go Premium to keep it." : "";
+  if (previewTheme){ const n = $("#themeNote"); const a = document.createElement("button"); a.type = "button"; a.className = "linkbtn"; a.style.margin = "0 0 0 6px"; a.textContent = "Go Premium"; a.addEventListener("click", () => openPremium()); n.appendChild(a); }
+}
+function chooseTheme(t){
+  if (t.pro && !isPremium()){ previewTheme = t.k; }
+  else { previewTheme = null; savedTheme = t.k; try { localStorage.setItem("sj:theme", t.k); } catch (e) {} }
+  paintTheme(currentThemeKey()); buildThemes();
+}
+function endPreview(){ if (previewTheme){ previewTheme = null; paintTheme(savedTheme); } }
+
+/* ---------- Premium licence ---------- */
+let premium = { active: false, plan: null, exp: null, code: null };
+const isPremium = () => premium.active;
+function b64uToBytes(s){ s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; return fromB64(s); }
+async function checkLicense(code){
+  try {
+    const pub = CFG.licensePublicKey; if (!code || !pub || !pub.x) return null;
+    const [body, sig] = code.trim().split("."); if (!body || !sig) return null;
+    const k = await crypto.subtle.importKey("jwk", { kty: "EC", crv: "P-256", x: pub.x, y: pub.y, ext: true }, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+    const ok = await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, k, b64uToBytes(sig), enc.encode(body));
+    if (!ok) return null;
+    const p = JSON.parse(dec.decode(b64uToBytes(body)));
+    if (p.app !== "sealed-journal") return null;
+    return { plan: p.plan, exp: p.exp || null, expired: !!(p.exp && p.exp * 1000 < Date.now()) };
+  } catch (e) { return null; }
+}
+async function loadPremium(){
+  let code = null; try { code = localStorage.getItem("sj:license"); } catch (e) {}
+  const r = await checkLicense(code);
+  premium = r && !r.expired ? { active: true, plan: r.plan, exp: r.exp, code } : { active: false, plan: r ? r.plan : null, exp: r ? r.exp : null, code: r ? code : null, expired: !!(r && r.expired) };
+  if (!premium.active && themeOf(savedTheme).pro){ savedTheme = "lilac"; try { localStorage.setItem("sj:theme", "lilac"); } catch (e) {} }
+  paintTheme(currentThemeKey()); refreshPremiumUI();
+}
+async function activateCode(code, source){
+  const r = await checkLicense(code);
+  if (!r) return "That code isn't valid. Check you copied all of it.";
+  if (r.expired) return "That code has expired. You can buy Premium again below.";
+  try { localStorage.setItem("sj:license", code.trim()); } catch (e) {}
+  await loadPremium(); endPreview();
+  toast(source === "buy" ? "Welcome to Premium ✦ Thank you!" : "Premium is active on this device ✦");
+  showPremiumState(); return null;
+}
+function refreshPremiumUI(){
+  const on = isPremium();
+  $("#promo").classList.toggle("hidden", on || !key);
+  $("#premInfo").textContent = on ? (premium.exp ? "Active until " + new Date(premium.exp * 1000).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) + "." : "Active forever. Thank you!")
+    : premium.expired ? "Your Premium year has ended. Renew to keep the extras." : "More themes, fonts and stickers. No ads.";
+  $("#premRowBtn").textContent = on ? "View" : premium.expired ? "Renew" : "Go Premium";
+  $("#premRowBtn").classList.toggle("primary", !on);
+  document.querySelectorAll("#fonts .chip").forEach(b => { const f = fontOf(b.dataset.k); b.classList.toggle("locked", !!f.pro && !on); const s = b.querySelector(".pro"); if (s) s.classList.toggle("hidden", on); });
+  document.querySelectorAll("#trayGrid .lockbadge").forEach(l => l.classList.toggle("hidden", on));
+  renderAds();
+}
+
+/* ---------- Premium sheet & payments ---------- */
+let chosenPlan = "lifetime", plansInfo = null, rzpLoaded = null;
+function inr(paise){ return "₹" + Math.round(paise / 100).toLocaleString("en-IN"); }
+async function loadPlans(){
+  if (plansInfo || !CFG.apiUrl) return plansInfo;
+  try { const r = await fetch(CFG.apiUrl.replace(/\/$/, "") + "/api/plans"); if (r.ok) plansInfo = await r.json(); } catch (e) {}
+  return plansInfo;
+}
+function paintPlans(){
+  document.querySelectorAll("#plans .plan").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.plan === chosenPlan)));
+  const pl = plansInfo && plansInfo.plans; const fb = CFG.displayPrices || {};
+  document.querySelectorAll("[data-price]").forEach(el => { const k = el.dataset.price; el.textContent = pl && pl[k] ? inr(pl[k].amount) : (fb[k] || "—"); });
+}
+function showPremiumState(){
+  const on = isPremium(), box = $("#premActive");
+  $("#premBuy").classList.toggle("hidden", on);
+  $("#restoreBox").classList.toggle("hidden", on);
+  box.classList.toggle("hidden", !on); box.innerHTML = "";
+  $("#premLead").textContent = on ? "Premium is active. Thank you for supporting Sealed Journal." : premium.expired ? "Your Premium year has ended. Renew to keep your themes, fonts and stickers." : "Make your journal feel like yours.";
+  if (on){
+    const p = document.createElement("p"); p.style.margin = "0";
+    p.textContent = premium.exp ? "Your plan: 1 year, active until " + new Date(premium.exp * 1000).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }) + "." : "Your plan: Forever.";
+    const c = document.createElement("code"); c.textContent = premium.code;
+    const hint = document.createElement("p"); hint.style.cssText = "margin:0 0 10px;color:var(--muted);font-size:.84rem"; hint.textContent = "Paste this Premium code on your other devices to turn Premium on there. Keep a copy somewhere safe.";
+    const cp = document.createElement("button"); cp.type = "button"; cp.className = "btn"; cp.textContent = "Copy code";
+    cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(premium.code); cp.textContent = "Copied"; } catch (e) { cp.textContent = "Select and copy the code above"; } });
+    box.append(p, c, hint, cp);
+  }
+}
+async function openPremium(){
+  $("#payMsg").textContent = ""; $("#payMsg").classList.remove("err");
+  showPremiumState(); paintPlans();
+  $("#premium").classList.remove("hidden"); $("#premClose").focus();
+  if (!CFG.apiUrl && !isPremium()){ setPayMsg("Payments aren't switched on yet. Add your server address in config.js.", true); }
+  await loadPlans(); paintPlans();
+}
+function closePremium(){ $("#premium").classList.add("hidden"); }
+function setPayMsg(m, err){ const e = $("#payMsg"); e.textContent = m || ""; e.classList.toggle("err", !!err); }
+$("#premClose").addEventListener("click", closePremium);
+$("#premium").addEventListener("click", e => { if (e.target.id === "premium") closePremium(); });
+$("#promo").addEventListener("click", openPremium);
+$("#premRowBtn").addEventListener("click", () => { closeSettings(); openPremium(); });
+document.querySelectorAll("#plans .plan").forEach(b => b.addEventListener("click", () => { chosenPlan = b.dataset.plan; paintPlans(); }));
+
+function loadRazorpay(){
+  if (window.Razorpay) return Promise.resolve(true);
+  if (rzpLoaded) return rzpLoaded;
+  rzpLoaded = new Promise(res => { const s = document.createElement("script"); s.src = "https://checkout.razorpay.com/v1/checkout.js"; s.onload = () => res(true); s.onerror = () => { rzpLoaded = null; res(false); }; document.head.appendChild(s); });
+  return rzpLoaded;
+}
+async function api(path, body){
+  const r = await fetch(CFG.apiUrl.replace(/\/$/, "") + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "Something went wrong. Try again.");
+  return data;
+}
+$("#payBtn").addEventListener("click", async () => {
+  if (!CFG.apiUrl){ setPayMsg("Payments aren't switched on yet. Add your server address in config.js.", true); return; }
+  const btn = $("#payBtn"); btn.disabled = true; setPayMsg("Opening secure payment…");
+  try {
+    const ok = await loadRazorpay(); if (!ok) throw new Error("Couldn't load the payment window. Check your connection.");
+    const order = await api("/api/order", { plan: chosenPlan });
+    const t = themeOf(currentThemeKey());
+    const rz = new window.Razorpay({
+      key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
+      name: "Sealed Journal", description: chosenPlan === "yearly" ? "Premium for 1 year" : "Premium forever",
+      theme: { color: t.light[5] },
+      handler: async resp => {
+        setPayMsg("Payment received. Unlocking Premium…");
+        try {
+          const v = await api("/api/verify", { orderId: resp.razorpay_order_id, paymentId: resp.razorpay_payment_id, signature: resp.razorpay_signature });
+          const err = await activateCode(v.license, "buy"); if (err) throw new Error(err);
+          setPayMsg("");
+        } catch (e) { setPayMsg("Your payment went through, but Premium didn't turn on. Use \"Already bought Premium?\" with the payment ID " + resp.razorpay_payment_id + ".", true); $("#restoreBox").open = true; $("#payIdIn").value = resp.razorpay_payment_id; }
+      },
+      modal: { ondismiss: () => { if ($("#payMsg").textContent === "Opening secure payment…") setPayMsg(""); } }
+    });
+    rz.on("payment.failed", r => setPayMsg("The payment didn't go through" + (r && r.error && r.error.description ? ": " + r.error.description : ".") + " You haven't been charged.", true));
+    rz.open();
+  } catch (e) { setPayMsg(e.message, true); }
+  btn.disabled = false;
+});
+$("#codeBtn").addEventListener("click", async () => {
+  const code = $("#codeIn").value.trim(); if (!code) return;
+  const err = await activateCode(code, "code"); if (err) setPayMsg(err, true); else $("#codeIn").value = "";
+});
+$("#payIdBtn").addEventListener("click", async () => {
+  const id = $("#payIdIn").value.trim();
+  if (!/^pay_[A-Za-z0-9]+$/.test(id)){ setPayMsg("Payment IDs start with pay_ and are in your Razorpay receipt email.", true); return; }
+  if (!CFG.apiUrl){ setPayMsg("Payments aren't switched on yet.", true); return; }
+  const b = $("#payIdBtn"); b.disabled = true; setPayMsg("Checking your payment…");
+  try { const v = await api("/api/restore", { paymentId: id }); const err = await activateCode(v.license, "restore"); if (err) throw new Error(err); setPayMsg(""); $("#payIdIn").value = ""; }
+  catch (e) { setPayMsg(e.message, true); }
+  b.disabled = false;
+});
+
+/* ---------- Ads (free users only, never inside the writing page) ---------- */
+let adsScript = false;
+function renderAds(){
+  const slots = document.querySelectorAll(".adwrap");
+  const show = !!(key && !isPremium() && CFG.adsenseClient);
+  slots.forEach(w => {
+    const slotId = CFG.adSlots && CFG.adSlots[w.dataset.ad];
+    if (!show || !slotId){ w.classList.add("hidden"); w.innerHTML = ""; return; }
+    w.classList.remove("hidden");
+    if (w.dataset.filled) return;
+    w.dataset.filled = "1";
+    w.innerHTML = '<span class="adlabel">Advertisement</span>';
+    const ins = document.createElement("ins"); ins.className = "adsbygoogle"; ins.style.display = "block";
+    ins.setAttribute("data-ad-client", CFG.adsenseClient); ins.setAttribute("data-ad-slot", slotId);
+    ins.setAttribute("data-ad-format", "auto"); ins.setAttribute("data-full-width-responsive", "true");
+    w.appendChild(ins);
+    if (!adsScript){ adsScript = true; const s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous";
+      s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(CFG.adsenseClient); document.head.appendChild(s); }
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  });
+  if (!show) slots.forEach(w => { delete w.dataset.filled; });
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3200); }
+
+/* ---------- Settings ---------- */
+function setMsg(msg, err){ const m = $("#setMsg"); m.textContent = msg || ""; m.classList.toggle("err", !!err); }
+function openSettings(){
+  setMsg(""); resetImport();
+  let last = null; try { last = localStorage.getItem("sj:lastBackup"); } catch (e) {}
+  $("#backupInfo").textContent = "Saves an encrypted copy of every page and checklist. You'll need your PIN to open it. " +
+    (last ? "Last backup: " + new Date(+last).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) + "." : "No backup yet.");
+  updateInstall(); buildThemes(); refreshPremiumUI(); $("#settings").classList.remove("hidden"); $("#setClose").focus();
+}
+function closeSettings(){ $("#settings").classList.add("hidden"); resetImport(); endPreview(); }
+$("#setBtn").addEventListener("click", openSettings);
+$("#setClose").addEventListener("click", closeSettings);
+$("#settings").addEventListener("click", e => { if (e.target.id === "settings") closeSettings(); });
+
+$("#exportBtn").addEventListener("click", async () => {
+  try {
+    await flushLists();
+    const data = { app: "sealed-journal", version: 1, exportedAt: new Date().toISOString(), vault,
+      entries: await Store.list("entries"), lists: await Store.list("lists") };
+    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "sealed-journal-backup-" + todayISO() + ".json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    try { localStorage.setItem("sj:lastBackup", String(Date.now())); } catch (e) {}
+    setMsg("Backup downloaded. Keep it somewhere safe, like Google Drive or your email.");
+  } catch (e) { setMsg("Couldn't create the backup. Try again.", true); }
+});
+
+let pendingBackup = null, importTimer = null;
+function resetImport(){ pendingBackup = null; clearTimeout(importTimer); const b = $("#importBtn"); b.textContent = "Choose file"; b.classList.remove("armed"); $("#importFile").value = ""; }
+$("#importBtn").addEventListener("click", async () => {
+  if (!pendingBackup){ $("#importFile").click(); return; }
+  const bk = pendingBackup; resetImport();
+  try {
+    const em = {}, lm = {};
+    bk.entries.forEach(r => { if (r && r.id && r.iv && r.ct) em[r.id] = { iv: r.iv, ct: r.ct, createdAt: r.createdAt, updatedAt: r.updatedAt }; });
+    (bk.lists || []).forEach(r => { if (r && r.id && r.iv && r.ct) lm[r.id] = { iv: r.iv, ct: r.ct, createdAt: r.createdAt, updatedAt: r.updatedAt }; });
+    await Store.replaceAll(bk.vault, em, lm);
+    vault = bk.vault; closeSettings(); lockJournal();
+    showUnlock("Backup restored. Enter the PIN you used when you made it.");
+    $("#lockMsg").style.color = "var(--seal)"; setTimeout(() => { $("#lockMsg").style.color = ""; }, 6000);
+  } catch (e) { setMsg("Couldn't restore that backup. Nothing was changed.", true); }
+});
+$("#importFile").addEventListener("change", async () => {
+  const f = $("#importFile").files[0]; if (!f) return;
+  try {
+    const bk = JSON.parse(await f.text());
+    if (!bk || bk.app !== "sealed-journal" || !bk.vault || !bk.vault.salt || !bk.vault.check || !Array.isArray(bk.entries)) throw new Error("bad");
+    pendingBackup = bk;
+    const when = bk.exportedAt ? new Date(bk.exportedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "an unknown date";
+    const np = bk.entries.length, nl = (bk.lists || []).length;
+    setMsg("Backup from " + when + " with " + np + (np === 1 ? " page" : " pages") + " and " + nl + (nl === 1 ? " checklist" : " checklists") + ". This replaces everything on this device.");
+    const b = $("#importBtn"); b.textContent = "Tap to restore"; b.classList.add("armed");
+    importTimer = setTimeout(resetImport, 12000);
+  } catch (e) { resetImport(); setMsg("That file isn't a Sealed Journal backup.", true); }
+});
+
+$("#chgPinBtn").addEventListener("click", () => {
+  closeSettings(); pinLen = (vault && vault.len) || 4;
+  $("#lock").classList.remove("hidden"); showChange();
+});
+$("#cancelBtn").addEventListener("click", () => {
+  pinLen = (vault && vault.len) || 4; lockMode = "idle"; $("#lock").classList.add("hidden");
+});
+$("#lenBtn").addEventListener("click", () => {
+  pinLen = pinLen === 4 ? 6 : 4; pin = ""; renderDots(); setLenBtn(true);
+  $("#lockSub").textContent = lockMode === "change1" ? "Enter a new " + pinLen + "-digit PIN."
+    : "Choose a " + pinLen + "-digit PIN. Your pages are encrypted with it, so a forgotten PIN can't be recovered.";
+});
+
+/* install */
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; updateInstall(); });
+window.addEventListener("appinstalled", () => { installEvt = null; updateInstall(); });
+function updateInstall(){
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const btn = $("#installBtn"), hint = $("#installHint");
+  btn.classList.toggle("hidden", standalone || !installEvt);
+  hint.textContent = standalone ? "Installed. It opens like a normal app and works offline."
+    : installEvt ? "Add it to your home screen or computer so it opens like an app, works offline, and keeps your pages safer."
+    : ios ? "On iPhone or iPad: open this page in Safari, tap Share, then Add to Home Screen. This also keeps your pages safer."
+    : "Open your browser menu and choose Install app or Add to Home screen.";
+}
+$("#installBtn").addEventListener("click", async () => {
+  if (!installEvt) return; installEvt.prompt();
+  try { await installEvt.userChoice; } catch (e) {} installEvt = null; updateInstall();
+});
+
+/* ---------- Views & bottom nav ---------- */
+function showView(v){
+  if (v !== "lists") lists = lists.filter(l => l.saved || l.title.trim() || l.items.length);
+  $("#viewHome").classList.toggle("hidden", v !== "home");
+  $("#viewLists").classList.toggle("hidden", v !== "lists");
+  $("#navHome").setAttribute("aria-current", v === "home" ? "page" : "false");
+  $("#navLists").setAttribute("aria-current", v === "lists" ? "page" : "false");
+  if (v === "lists") renderLists(); else renderApp();
+  window.scrollTo(0, 0);
+}
+$("#navHome").addEventListener("click", () => showView("home"));
+$("#navLists").addEventListener("click", () => showView("lists"));
+
+/* ---------- Checklists ---------- */
+let lists = [], listTimers = {};
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+async function loadLists(){
+  const raw = await Store.list("lists"); const out = [];
+  for (const r of raw){
+    try { const d = await openObj(key, r);
+      out.push({ id: r.id, createdAt: r.createdAt, updatedAt: r.updatedAt, title: d.title || "", items: Array.isArray(d.items) ? d.items : [], saved: true });
+    } catch (e) {}
+  }
+  lists = out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+function scheduleSave(l){ clearTimeout(listTimers[l.id]); listTimers[l.id] = setTimeout(() => saveList(l), 600); }
+async function saveList(l){
+  clearTimeout(listTimers[l.id]); delete listTimers[l.id];
+  if (!key || (!l.saved && !l.title.trim() && !l.items.length)) return;
+  try {
+    const sealed = await sealObj(key, { title: l.title, items: l.items });
+    const now = Date.now(); l.createdAt = l.createdAt || now; l.updatedAt = now;
+    await Store.put("lists", l.id, { iv: sealed.iv, ct: sealed.ct, createdAt: l.createdAt, updatedAt: now });
+    l.saved = true; $("#listErr").textContent = "";
+  } catch (e) { $("#listErr").textContent = "Couldn't save a checklist. Check your connection; changes will retry on your next edit."; }
+}
+async function flushLists(){
+  const ids = Object.keys(listTimers);
+  await Promise.all(ids.map(id => { const l = lists.find(x => x.id === id); return l ? saveList(l) : null; }));
+}
+
+function renderLists(focusSel){
+  const box = $("#lists"); box.innerHTML = "";
+  const n = lists.filter(l => l.saved || l.title.trim() || l.items.length).length;
+  $("#lCount").textContent = n === 0 ? "Groceries, goals, things to pack. Your lists stay sealed too." : n === 1 ? "1 checklist." : n + " checklists.";
+  if (!lists.length){
+    const p = document.createElement("p"); p.className = "empty"; p.textContent = "No checklists yet. Tap New checklist to start one.";
+    box.appendChild(p); return;
+  }
+  lists.forEach(l => box.appendChild(listCard(l)));
+  if (focusSel){ const el = box.querySelector(focusSel); if (el) el.focus(); }
+}
+function listCard(l){
+  const card = document.createElement("section"); card.className = "clist"; card.dataset.id = l.id;
+  const title = document.createElement("input"); title.className = "clist-title"; title.type = "text"; title.maxLength = 80;
+  title.placeholder = "Name this checklist"; title.value = l.title; title.setAttribute("aria-label", "Checklist name");
+  title.addEventListener("input", () => { l.title = title.value; scheduleSave(l); });
+  title.enterKeyHint = "next";
+  title.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); card.querySelector(".cadd input").focus(); } });
+  card.appendChild(title);
+
+  const done = l.items.filter(i => i.done).length, total = l.items.length;
+  if (total){
+    const prog = document.createElement("div"); prog.className = "cprog";
+    const bar = document.createElement("div"); bar.className = "cbar"; const fill = document.createElement("span");
+    fill.style.width = (done / total * 100) + "%"; bar.appendChild(fill);
+    const lab = document.createElement("span"); lab.textContent = done === total ? "All done ♡" : done + " of " + total + " done";
+    prog.append(bar, lab); card.appendChild(prog);
+  }
+
+  l.items.forEach(it => {
+    const row = document.createElement("div"); row.className = "citem" + (it.done ? " done" : "");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!it.done; cb.setAttribute("aria-label", "Mark done: " + (it.t || "item"));
+    cb.addEventListener("change", () => { it.done = cb.checked; scheduleSave(l); renderLists(); });
+    const tx = document.createElement("input"); tx.className = "ctext"; tx.type = "text"; tx.value = it.t; tx.maxLength = 200; tx.setAttribute("aria-label", "Item");
+    tx.addEventListener("input", () => { it.t = tx.value; scheduleSave(l); });
+    tx.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); card.querySelector(".cadd input").focus(); } });
+    const del = document.createElement("button"); del.type = "button"; del.className = "cdel"; del.textContent = "×"; del.setAttribute("aria-label", "Remove item");
+    del.addEventListener("click", () => { l.items = l.items.filter(x => x !== it); scheduleSave(l); renderLists(); });
+    row.append(cb, tx, del); card.appendChild(row);
+  });
+
+  const add = document.createElement("div"); add.className = "cadd";
+  const plus = document.createElement("span"); plus.textContent = "+"; plus.setAttribute("aria-hidden", "true");
+  const ai = document.createElement("input"); ai.type = "text"; ai.enterKeyHint = "enter"; ai.placeholder = "Add an item"; ai.maxLength = 200; ai.setAttribute("aria-label", "Add an item");
+  ai.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return; e.preventDefault();
+    const t = ai.value.trim(); if (!t) return;
+    l.items.push({ id: uid("i"), t, done: false }); scheduleSave(l);
+    renderLists('.clist[data-id="' + l.id + '"] .cadd input');
+  });
+  add.append(plus, ai); card.appendChild(add);
+
+  const foot = document.createElement("div"); foot.className = "cfoot";
+  const dl = document.createElement("button"); dl.type = "button"; dl.textContent = "Delete checklist";
+  let t = null;
+  dl.addEventListener("click", async () => {
+    if (!dl.classList.contains("armed")){ dl.classList.add("armed"); dl.textContent = "Tap again to delete";
+      t = setTimeout(() => { dl.classList.remove("armed"); dl.textContent = "Delete checklist"; }, 3500); return; }
+    clearTimeout(t); clearTimeout(listTimers[l.id]); delete listTimers[l.id];
+    try { if (l.saved) await Store.remove("lists", l.id); lists = lists.filter(x => x !== l); renderLists(); }
+    catch (e) { $("#listErr").textContent = "Couldn't delete that checklist. Try again."; }
+  });
+  foot.appendChild(dl); card.appendChild(foot);
+  return card;
+}
+$("#newListBtn").addEventListener("click", () => {
+  const l = { id: uid("l"), title: "", items: [], saved: false, createdAt: Date.now() };
+  lists.unshift(l); renderLists('.clist[data-id="' + l.id + '"] .clist-title');
+});
+
+/* ---------- Boot ---------- */
+buildKeypad();
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+(async function boot(){
+  if (!(window.crypto && crypto.subtle)){ setLock("This browser can't seal pages", "Open the journal in an up-to-date browser over a secure connection."); return; }
+  await Store.init();
+  await loadPremium();
+  try { vault = await Store.getVault(); } catch (e) { vault = null; }
+  if (vault) showUnlock(); else showSetup();
+})();
+})();
+</script>
+</body>
+</html>
