@@ -6,7 +6,7 @@ window.SJ_CONFIG = {
   apiUrl: "",
 
   // 2) Paste the public key from keygen.html here (the line that starts with {"kty":"EC"...)
-  licensePublicKey: {},
+  licensePublicKey: {"kty":"EC",{"kty":"EC","crv":"P-256","x":"0whMTg52kfhN2eiNNNMGONq-DZzEhoxFTIq0fx6gcJk","y":"PF4IJ2eaQ7LzYJA854KMCUWBulhwKejKHPgkI9MA1NI"}},
 
   // 3) Google AdSense: your publisher ID and the ad unit IDs you create in AdSense
   adsenseClient: "",            // e.g. "ca-pub-1234567890123456"
